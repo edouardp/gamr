@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 (2026-06-10)
+
+0.1.2 (2025-06-10)
+
+  - State files now stored in ~/.config/gamr/state/ instead of polluting project directories
+  - Existing local .gamrstate files are still respected for backward compatibility
+  - Removed unnecessary horizontal scrollbar from preview pane (content wraps with Textual 1.x)
+
 0.1.1 (2025-06-10)
 
   Initial public release.
