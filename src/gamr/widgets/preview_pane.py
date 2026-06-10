@@ -136,6 +136,11 @@ class DiffOverview(Static):
     def _render_braille(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
         """Render using braille characters (4 source lines per row via 2x2 dot grid)."""
         rows_available = height
+        # When content fits on screen (total_lines <= height), use 1:1 mapping
+        # so dots align with the actual source lines visible in the preview.
+        if total_lines <= rows_available:
+            return self._render_braille_1to1(total_lines, rows_available, green, red, orange)
+
         lines_per_dot = max(1, total_lines / (rows_available * 4))
         result = Text(no_wrap=True)
 
@@ -164,6 +169,26 @@ class DiffOverview(Static):
             else:
                 result.append(char + "\n", style="dim")
 
+        return result
+
+    def _render_braille_1to1(
+        self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]
+    ) -> Text:
+        """Render braille with 1:1 line-to-row mapping when content fits on screen."""
+        result = Text(no_wrap=True)
+        for row in range(height):
+            line = row + 1
+            if line <= total_lines and (line in green or line in red or line in orange):
+                # Light top-left dot for a single line
+                char = chr(0x2800 + 0x01)
+                if line in orange or (line in green and line in red):
+                    result.append(char + "\n", style="#ff8c00")
+                elif line in green:
+                    result.append(char + "\n", style="green")
+                else:
+                    result.append(char + "\n", style="red")
+            else:
+                result.append("⠀\n", style="dim")
         return result
 
     def watch_use_braille(self, value: bool) -> None:

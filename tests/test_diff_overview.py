@@ -145,3 +145,36 @@ class TestRenderBrailleGutterMode:
                 found = True
                 break
         assert found, "Change at line 690/700 was not visible in braille overview"
+
+
+class TestBraille1to1WhenContentFits:
+    """Regression: braille dots must align 1:1 when total_lines <= height."""
+
+    def setup_method(self):
+        self.overview = DiffOverview()
+
+    def test_change_at_line_10_appears_at_row_10(self):
+        """With 15 lines in 40 rows, line 10 should appear at row 9 (0-indexed)."""
+        result = self.overview._render_braille(15, 40, green={10}, red=set(), orange=set())
+        assert "green" in _style_at(result, 9)
+        # Rows before and after should be dim
+        assert "dim" in _style_at(result, 8)
+        assert "dim" in _style_at(result, 10)
+
+    def test_change_at_last_line_not_clustered_at_top(self):
+        """Line 20 in a 20-line file with 30 rows should be at row 19, not near top."""
+        result = self.overview._render_braille(20, 30, green=set(), red={20}, orange=set())
+        assert "red" in _style_at(result, 19)
+        # Top rows should be dim
+        for row in range(5):
+            assert "dim" in _style_at(result, row)
+
+    def test_matches_line_mode_positioning(self):
+        """Braille and line mode should mark the same rows when content fits."""
+        green = {3, 7, 12}
+        braille = self.overview._render_braille(15, 20, green=green, red=set(), orange=set())
+        lines = self.overview._render_lines(15, 20, green=green, red=set(), orange=set())
+        for row in range(20):
+            braille_green = "green" in _style_at(braille, row)
+            lines_green = "green" in _style_at(lines, row)
+            assert braille_green == lines_green, f"Mismatch at row {row}"
