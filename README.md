@@ -13,7 +13,7 @@
 - **Three view modes** — tree, flat filenames, flat relative paths (`v` to cycle)
 - **Column sorting** — click any column header to sort asc/desc/none
 - **Fuzzy search** — fzf-like filename filtering with RapidFuzz
-- **Git status filtering** — toggle buttons to show only modified, added, etc.
+- **Git status filtering** — `g` to toggle showing only modified files
 - **Syntax-highlighted preview** — Monokai theme, scrollable, line numbers
 - **Copy file references** — double-click or drag lines to copy `path:line` to clipboard
 - **Full file diff** — syntax highlighting with inline +/- markers and colored backgrounds
@@ -45,7 +45,7 @@ uv run gamr [path]
 | `v`      | Cycle view mode (tree → flat name → flat path)     |
 | `d`      | Cycle diff mode (full → gutter → unified)           |
 | `D`      | Cycle diff mode reverse                            |
-| `m`      | Toggle Modified filter                             |
+| `g`      | Toggle git modified filter                         |
 | `f`      | Toggle follow mode (auto-select last changed file) |
 | `ctrl+f` | Focus search input                                 |
 | `b`      | Toggle blame columns (last author, git time)       |
@@ -75,7 +75,7 @@ src/gamr/
 └── widgets/
     ├── file_tree_table.py  # DataTable with tree semantics
     ├── tree_data.py        # Tree building and sorting logic
-    ├── filter_bar.py       # Git status toggles + search input
+    ├── filter_bar.py       # Search input + filter state
     ├── preview_pane.py     # Syntax highlighting + diff view
     └── split.py            # Resizable horizontal split
 ```

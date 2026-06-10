@@ -44,12 +44,12 @@
 
 ## Filtering
 
-- **m** — Toggle the Modified git status filter
+- **g** — Toggle git modified filter (shows only modified files)
 - **ctrl+f** — Focus the search input
-- Filter buttons (M, A, D, ?, S) toggle git status filters
 - Search input provides fzf-like fuzzy filename matching (RapidFuzz)
-- Filters compose: status filter applied first, then fuzzy search
-- Filter state (selected filter IDs + search query) persisted between sessions
+- Filters compose: git modified filter applied first, then fuzzy search
+- Filter state (modified toggle + search query) persisted between sessions
+- Collapsed folder state is preserved when toggling between filtered and unfiltered views
 
 ## Follow Mode
 
@@ -106,7 +106,7 @@
 
 ## Git Integration
 
-- Graceful degradation for non-git directories: hides status/lines columns and filter buttons
+- Graceful degradation for non-git directories: hides status/lines columns
 - `.gitignore` rules enforced via Dulwich's `IgnoreFilterManager` (handles nesting, negation, `**` globs)
 - Git status: M (modified), A (added), D (deleted), ? (untracked), SM/SA/SD (staged variants)
 - Diff computed against HEAD
