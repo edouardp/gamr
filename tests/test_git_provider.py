@@ -1,11 +1,12 @@
 """Tests for GitProvider."""
 
-import os
 from pathlib import Path
 
+from dulwich import porcelain
 from dulwich.repo import Repo
 
-from fooey.services.git_provider import DulwichGitProvider, GitStatus, NullGitProvider
+from gamr.models import GitStatus
+from gamr.services.git_provider import DulwichGitProvider, NullGitProvider
 
 
 def _init_repo(tmp_path: Path) -> Repo:
@@ -14,9 +15,10 @@ def _init_repo(tmp_path: Path) -> Repo:
     # Create and commit a file
     f = tmp_path / "hello.txt"
     f.write_text("hello world\n")
-    repo.stage(["hello.txt"])
-    repo.do_commit(
-        b"initial commit",
+    porcelain.add(repo, paths=["hello.txt"])
+    porcelain.commit(
+        repo,
+        message=b"initial commit",
         committer=b"Test User <test@test.com>",
         author=b"Test User <test@test.com>",
     )
@@ -52,6 +54,29 @@ def test_status_untracked(tmp_path: Path) -> None:
 
     assert (tmp_path / "new.txt") in status
     assert status[tmp_path / "new.txt"] == GitStatus.UNTRACKED
+
+
+def test_status_deleted(tmp_path: Path) -> None:
+    _init_repo(tmp_path)
+    (tmp_path / "hello.txt").unlink()
+
+    provider = DulwichGitProvider(tmp_path)
+
+    assert provider.get_status()[tmp_path / "hello.txt"] == GitStatus.DELETED
+
+
+def test_discovers_repo_from_subdirectory(tmp_path: Path) -> None:
+    _init_repo(tmp_path)
+    subdirectory = tmp_path / "src"
+    subdirectory.mkdir()
+    file = subdirectory / "module.py"
+    file.write_text("x = 1\n")
+
+    provider = DulwichGitProvider(subdirectory)
+
+    assert provider.is_git_repo()
+    assert provider.repo_root == tmp_path.resolve()
+    assert provider.get_status()[file.resolve()] == GitStatus.UNTRACKED
 
 
 def test_get_diff(tmp_path: Path) -> None:

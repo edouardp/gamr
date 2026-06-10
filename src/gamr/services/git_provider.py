@@ -2,37 +2,26 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
+from typing import Protocol
 
 from dulwich import porcelain
+from dulwich.ignore import IgnoreFilterManager
 from dulwich.objects import Blob
 from dulwich.repo import Repo
 
+from gamr.models import BlameInfo, FileStats, GitStatus
 
-class GitStatus(Enum):
-    UNTRACKED = "?"
-    MODIFIED = "M"
-    ADDED = "A"
-    DELETED = "D"
-    STAGED_MODIFIED = "SM"
-    STAGED_ADDED = "SA"
-    STAGED_DELETED = "SD"
+logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True, slots=True)
-class FileStats:
-    lines_added: int
-    lines_removed: int
+class IgnoreFilter(Protocol):
+    """Structural type shared with FileScanner's ignore filter support."""
 
-
-@dataclass(frozen=True, slots=True)
-class BlameInfo:
-    last_author: str
-    last_modified: int  # unix timestamp
+    def is_ignored(self, path: str) -> bool | None: ...
 
 
 class GitProvider(ABC):
@@ -53,45 +42,71 @@ class GitProvider(ABC):
     @abstractmethod
     def get_blame_info(self, path: Path) -> BlameInfo | None: ...
 
+    def get_ignore_filter(self) -> IgnoreFilter | None:
+        """Return gitignore filter if available."""
+        return None
+
 
 class DulwichGitProvider(GitProvider):
     """Dulwich-based pure-Python git provider."""
 
     def __init__(self, root: Path) -> None:
-        self.root = root.resolve()
+        self.target_path = root.resolve()
+        self.repo_root = self.target_path
         self._repo: Repo | None = None
         try:
-            self._repo = Repo(str(self.root))
+            self._repo = Repo.discover(str(self.target_path))
+            self.repo_root = Path(self._repo.path).resolve()
         except Exception:
             pass
 
     def is_git_repo(self) -> bool:
         return self._repo is not None
 
+    @property
+    def git_dir(self) -> Path | None:
+        """Return the .git directory path, or None if not a git repo."""
+        if self._repo:
+            return Path(self._repo.controldir())
+        return None
+
+    def get_ignore_filter(self) -> IgnoreFilter | None:
+        if self._repo:
+            manager = IgnoreFilterManager.from_repo(self._repo)
+            prefix = self.target_path.relative_to(self.repo_root).as_posix()
+            if prefix != ".":
+                return _PrefixedIgnoreFilter(manager, prefix)
+            return manager
+        return None
+
     def get_status(self) -> dict[Path, GitStatus]:
         if not self._repo:
             return {}
 
         result: dict[Path, GitStatus] = {}
-        status = porcelain.status(self._repo)
+        try:
+            status = porcelain.status(self._repo, untracked_files="all")
+        except Exception:
+            logger.exception("Failed to get git status")
+            return {}
 
-        # Staged changes: status.staged is a dict with keys 'add', 'modify', 'delete'
+        # Staged changes take priority — process them first
         for path_bytes in status.staged.get("add", []):
-            result[self.root / os.fsdecode(path_bytes)] = GitStatus.STAGED_ADDED
+            result[self.repo_root / os.fsdecode(path_bytes)] = GitStatus.STAGED_ADDED
         for path_bytes in status.staged.get("modify", []):
-            result[self.root / os.fsdecode(path_bytes)] = GitStatus.STAGED_MODIFIED
+            result[self.repo_root / os.fsdecode(path_bytes)] = GitStatus.STAGED_MODIFIED
         for path_bytes in status.staged.get("delete", []):
-            result[self.root / os.fsdecode(path_bytes)] = GitStatus.STAGED_DELETED
+            result[self.repo_root / os.fsdecode(path_bytes)] = GitStatus.STAGED_DELETED
 
-        # Unstaged (working tree) changes: list of path bytes
+        # Only mark unstaged if not already in staged (staged wins in priority)
         for path_bytes in status.unstaged:
-            p = self.root / os.fsdecode(path_bytes)
+            p = self.repo_root / os.fsdecode(path_bytes)
             if p not in result:
-                result[p] = GitStatus.MODIFIED
+                result[p] = GitStatus.MODIFIED if os.path.lexists(p) else GitStatus.DELETED
 
-        # Untracked: list of str
         for path_str in status.untracked:
-            result[self.root / path_str] = GitStatus.UNTRACKED
+            decoded = os.fsdecode(path_str) if isinstance(path_str, bytes) else path_str
+            result[self.repo_root / decoded] = GitStatus.UNTRACKED
 
         return result
 
@@ -100,16 +115,15 @@ class DulwichGitProvider(GitProvider):
         if not self._repo:
             return ""
 
-        rel = os.fsencode(str(path.relative_to(self.root)))
+        rel = os.fsencode(str(path.relative_to(self.repo_root)))
         try:
+            # Resolve HEAD commit's tree to get the old version of the file
             head = self._repo[self._repo.head()]
             tree = self._repo[head.tree]
         except Exception:
             return ""
 
-        # Get blob from HEAD
         old_blob = self._lookup_blob(tree, rel)
-        # Get current working copy content
         try:
             new_content = path.read_bytes().splitlines(True)
         except OSError:
@@ -132,8 +146,9 @@ class DulwichGitProvider(GitProvider):
         diff = self.get_diff(path)
         if not diff:
             return None
-        added = sum(1 for l in diff.splitlines() if l.startswith("+") and not l.startswith("+++"))
-        removed = sum(1 for l in diff.splitlines() if l.startswith("-") and not l.startswith("---"))
+        # Count diff lines starting with +/- but skip the +++ / --- header markers
+        added = sum(1 for ln in diff.splitlines() if ln.startswith("+") and not ln.startswith("+++"))
+        removed = sum(1 for ln in diff.splitlines() if ln.startswith("-") and not ln.startswith("---"))
         return FileStats(lines_added=added, lines_removed=removed)
 
     def get_blame_info(self, path: Path) -> BlameInfo | None:
@@ -141,22 +156,23 @@ class DulwichGitProvider(GitProvider):
         if not self._repo:
             return None
 
-        rel = str(path.relative_to(self.root))
+        rel = str(path.relative_to(self.repo_root))
         try:
-            # Walk commits to find last one that touched this file
+            # Walk commits touching this file; max_entries=1 gets the most recent
             for entry in self._repo.get_walker(paths=[rel.encode()], max_entries=1):
                 commit = entry.commit
                 author = commit.author.decode(errors="replace")
-                # Strip email if present
+                # Strip email portion from "Name <email>" format
                 if "<" in author:
                     author = author.split("<")[0].strip()
                 return BlameInfo(last_author=author, last_modified=commit.author_time)
         except Exception:
-            pass
+            logger.debug("Failed to get blame for %s", rel)
         return None
 
     def _lookup_blob(self, tree_obj: object, path_bytes: bytes) -> bytes | None:
         """Look up file content in a tree by path."""
+        # Walk each path component, descending through nested tree objects
         parts = path_bytes.split(b"/")
         current = tree_obj
         for part in parts:
@@ -170,11 +186,26 @@ class DulwichGitProvider(GitProvider):
         return None
 
 
+class _PrefixedIgnoreFilter:
+    """Translate paths relative to a browsed subdirectory into repo-relative paths."""
+
+    def __init__(self, manager: IgnoreFilterManager, prefix: str) -> None:
+        self._manager = manager
+        self._prefix = prefix
+
+    def is_ignored(self, path: str) -> bool | None:
+        return self._manager.is_ignored(f"{self._prefix}/{path}")
+
+
 class NullGitProvider(GitProvider):
     """No-op provider for non-git directories."""
 
     def is_git_repo(self) -> bool:
         return False
+
+    @property
+    def git_dir(self) -> Path | None:
+        return None
 
     def get_status(self) -> dict[Path, GitStatus]:
         return {}

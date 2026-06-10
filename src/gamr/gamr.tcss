@@ -1,0 +1,13 @@
+#main {
+    height: 1fr;
+}
+
+#left-pane {
+    width: 1fr;
+    height: 100%;
+}
+
+#right-pane {
+    width: 1fr;
+    height: 100%;
+}

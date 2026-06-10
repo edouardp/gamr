@@ -2,8 +2,11 @@
 
 import time
 from pathlib import Path
+from queue import Queue
 
-from fooey.services.file_scanner import ChangeType, FileScanner
+from watchdog.events import DirMovedEvent, FileMovedEvent
+
+from gamr.services.file_scanner import ChangeType, FileChange, FileScanner, _Handler
 
 
 def test_scan_finds_files(tmp_path: Path) -> None:
@@ -32,6 +35,15 @@ def test_scan_ignores_git_dir(tmp_path: Path) -> None:
     assert "config" not in names
 
 
+def test_explicit_empty_ignore_patterns_disables_defaults(tmp_path: Path) -> None:
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text("")
+
+    scanner = FileScanner(tmp_path, ignore_patterns=[])
+
+    assert tmp_path / ".git" / "config" in scanner.scan()
+
+
 def test_polling_detects_changes(tmp_path: Path) -> None:
     (tmp_path / "a.txt").write_text("v1")
     scanner = FileScanner(tmp_path)
@@ -57,3 +69,27 @@ def test_watchdog_detects_creation(tmp_path: Path) -> None:
         assert any(c.path.name == "new.txt" for c in changes)
     finally:
         scanner.stop()
+
+
+def test_handler_translates_move_to_delete_and_create(tmp_path: Path) -> None:
+    queue: Queue[FileChange] = Queue()
+    handler = _Handler(tmp_path, queue, lambda _path: False)
+    source = tmp_path / "old.txt"
+    destination = tmp_path / "new.txt"
+
+    handler.on_moved(FileMovedEvent(str(source), str(destination)))
+
+    changes = [queue.get_nowait(), queue.get_nowait()]
+    assert changes == [
+        FileChange(source, ChangeType.DELETED),
+        FileChange(destination, ChangeType.CREATED),
+    ]
+
+
+def test_handler_emits_change_for_directory_move(tmp_path: Path) -> None:
+    queue: Queue[FileChange] = Queue()
+    handler = _Handler(tmp_path, queue, lambda _path: False)
+
+    handler.on_moved(DirMovedEvent(str(tmp_path / "old-dir"), str(tmp_path / "new-dir")))
+
+    assert queue.qsize() == 2
