@@ -227,7 +227,7 @@ class PreviewPane(Widget):
         width: 1fr;
         height: 100%;
         background: #272822;
-        overflow-x: auto;
+        overflow-x: hidden;
     }
     PreviewPane #preview-content {
         background: #272822;

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from dataclasses import dataclass, field
@@ -11,6 +12,13 @@ from typing import TYPE_CHECKING, Any
 from gamr.models import DiffMode, GitStatus
 from gamr.services.filter import STATUS_FILTERS_BY_ID, filter_ids_for_statuses
 from gamr.widgets.file_tree_table import ViewMode
+
+
+def _config_state_path(target_path: Path) -> Path:
+    """Return ~/.config/gamr/state/<hash>.json for a target path."""
+    path_hash = hashlib.sha256(str(target_path.resolve()).encode()).hexdigest()[:16]
+    return Path.home() / ".config" / "gamr" / "state" / f"{path_hash}.json"
+
 
 if TYPE_CHECKING:
     from gamr.widgets.file_tree_table import FileTreeTable
@@ -64,9 +72,17 @@ class AppState:
 
     @classmethod
     def load(cls, target_path: Path) -> AppState:
-        """Load valid state for a target path, otherwise return defaults."""
+        """Load valid state for a target path, otherwise return defaults.
+
+        Checks for a local .gamrstate first (legacy/existing). If not present,
+        uses ~/.config/gamr/state/<hash>.json.
+        """
         default = cls(target_path)
-        state_file = target_path / ".gamrstate"
+        local_file = target_path / ".gamrstate"
+        if local_file.exists():
+            state_file = local_file
+        else:
+            state_file = _config_state_path(target_path)
         if not state_file.exists():
             return default
         try:
@@ -76,8 +92,17 @@ class AppState:
         return cls.from_dict(target_path, data) or default
 
     def save(self) -> None:
-        """Persist current state to .gamrstate in the target directory."""
-        state_file = self.target_path / ".gamrstate"
+        """Persist current state.
+
+        Writes to local .gamrstate if one already exists (legacy), otherwise
+        writes to ~/.config/gamr/state/<hash>.json.
+        """
+        local_file = self.target_path / ".gamrstate"
+        if local_file.exists():
+            state_file = local_file
+        else:
+            state_file = _config_state_path(self.target_path)
+            state_file.parent.mkdir(parents=True, exist_ok=True)
         state_file.write_text(json.dumps(self.to_dict(), indent=2))
 
     def to_dict(self) -> dict[str, Any]:
