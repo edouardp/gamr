@@ -6,7 +6,6 @@
   - Fixed collapsed folders lost when toggling between filtered and unfiltered views
   - Added git worktree support plan (docs/GIT_WORKTREES.md)
 
-
 ## 0.1.3 (2026-06-10)
 
   - Fixed braille diff overview alignment for short files — dots now align 1:1 with source lines when content fits on screen
