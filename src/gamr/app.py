@@ -69,7 +69,7 @@ class GamrApp(App):
         Binding("5", "toggle_col('author')", "Author col", show=False, priority=True),
         Binding("6", "toggle_col('git_time')", "Git time col", show=False, priority=True),
         # Filters
-        Binding("m", "toggle_modified", "Modified", show=True, priority=True),
+        Binding("g", "toggle_modified", "Git modified", show=True, priority=True),
         # App lifecycle
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
@@ -133,8 +133,6 @@ class GamrApp(App):
         if not self._git.is_git_repo():
             tree.show_status = False
             tree.show_lines = False
-            for btn in self.query(".filter-btn"):
-                btn.display = False
         else:
             self._load_diff_stats()
 
@@ -459,7 +457,7 @@ class GamrApp(App):
         self.query_one(FileTreeTable).action_cycle_view()
 
     def action_toggle_modified(self) -> None:
-        self.query_one("#filter-modified").press()
+        self.query_one(FilterBar).toggle_modified()
 
     # -------------------------------------------------------------------------
     # State persistence

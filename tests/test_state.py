@@ -38,11 +38,11 @@ def test_state_migrates_legacy_statuses_to_filter_ids(tmp_path: Path) -> None:
         tmp_path,
         {
             "target": str(tmp_path.resolve()),
-            "active_statuses": ["A", "SM"],
+            "active_statuses": ["M"],
         },
     )
 
     assert state is not None
-    assert state.active_filter_ids == {"added", "staged"}
-    assert state.to_dict()["active_filters"] == ["added", "staged"]
+    assert state.active_filter_ids == {"modified"}
+    assert state.to_dict()["active_filters"] == ["modified"]
     assert "active_statuses" not in state.to_dict()

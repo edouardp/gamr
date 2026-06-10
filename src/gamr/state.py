@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from gamr.models import DiffMode, GitStatus
-from gamr.services.filter import STATUS_FILTERS_BY_ID, filter_ids_for_statuses
 from gamr.widgets.file_tree_table import ViewMode
 
 
@@ -191,20 +190,23 @@ class AppState:
 
     @staticmethod
     def _parse_active_filter_ids(data: dict[str, Any]) -> set[str]:
-        """Parse explicit filter IDs or migrate the legacy status representation."""
+        """Parse the persisted filter state (only 'modified' is supported)."""
         if "active_filters" in data:
             filter_data = data["active_filters"]
             if not isinstance(filter_data, list) or not all(isinstance(filter_id, str) for filter_id in filter_data):
                 raise TypeError
-            filter_ids = set(filter_data)
-            if not filter_ids.issubset(STATUS_FILTERS_BY_ID):
-                raise ValueError
-            return filter_ids
+            # Only "modified" is a valid toggle now; discard legacy filter IDs
+            return {"modified"} if "modified" in filter_data else set()
 
+        # Legacy: migrate old "active_statuses" format
         status_data = data.get("active_statuses", [])
         if not isinstance(status_data, list):
             raise TypeError
-        return filter_ids_for_statuses({GitStatus(value) for value in status_data})
+        try:
+            statuses = {GitStatus(value) for value in status_data}
+        except ValueError:
+            return set()
+        return {"modified"} if GitStatus.MODIFIED in statuses else set()
 
     def apply_to_widgets(
         self,

@@ -17,7 +17,7 @@ async def test_staged_filter_includes_all_staged_statuses() -> None:
     async with app.run_test() as pilot:
         bar = app.query_one(FilterBar)
 
-        app.query_one("#filter-staged").press()
+        bar.selected_filter_ids = {"staged"}
         await pilot.pause()
 
         assert bar.active_statuses == {
@@ -25,7 +25,6 @@ async def test_staged_filter_includes_all_staged_statuses() -> None:
             GitStatus.STAGED_ADDED,
             GitStatus.STAGED_DELETED,
         }
-        assert bar.selected_filter_ids == {"staged"}
 
 
 async def test_added_filter_includes_staged_additions() -> None:
@@ -33,11 +32,10 @@ async def test_added_filter_includes_staged_additions() -> None:
     async with app.run_test() as pilot:
         bar = app.query_one(FilterBar)
 
-        app.query_one("#filter-added").press()
+        bar.selected_filter_ids = {"added"}
         await pilot.pause()
 
         assert bar.active_statuses == {GitStatus.ADDED, GitStatus.STAGED_ADDED}
-        assert bar.selected_filter_ids == {"added"}
 
 
 async def test_overlapping_filter_toggle_preserves_other_group() -> None:
@@ -45,9 +43,10 @@ async def test_overlapping_filter_toggle_preserves_other_group() -> None:
     async with app.run_test() as pilot:
         bar = app.query_one(FilterBar)
 
-        app.query_one("#filter-staged").press()
-        app.query_one("#filter-added").press()
-        app.query_one("#filter-added").press()
+        bar.selected_filter_ids = {"staged", "added"}
+        await pilot.pause()
+        # Remove "added", staged should remain
+        bar.selected_filter_ids = {"staged"}
         await pilot.pause()
 
         assert bar.active_statuses == {
@@ -56,6 +55,22 @@ async def test_overlapping_filter_toggle_preserves_other_group() -> None:
             GitStatus.STAGED_DELETED,
         }
         assert bar.selected_filter_ids == {"staged"}
+
+
+async def test_toggle_modified() -> None:
+    app = FilterApp()
+    async with app.run_test() as pilot:
+        bar = app.query_one(FilterBar)
+
+        bar.toggle_modified()
+        await pilot.pause()
+        assert bar.selected_filter_ids == {"modified"}
+        assert bar.active_statuses == {GitStatus.MODIFIED}
+
+        bar.toggle_modified()
+        await pilot.pause()
+        assert bar.selected_filter_ids == set()
+        assert bar.active_statuses == set()
 
 
 def test_legacy_statuses_are_migrated_to_filter_ids() -> None:

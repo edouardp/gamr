@@ -152,6 +152,8 @@ class FileTreeTable(DataTable):
         self._sort_direction: str = "none"  # "asc", "desc", or "none"
         # Saved view mode so we can restore it when sort is cleared (tree can't sort)
         self._pre_sort_view_mode: ViewMode | None = None
+        # Persistent collapsed state — survives filtering where dirs may disappear
+        self._collapsed_dirs: set[str] = set()
 
     def on_mount(self) -> None:
         self._ensure_columns()
@@ -163,7 +165,8 @@ class FileTreeTable(DataTable):
         self._root_path = root_path
         self._tree_nodes = build_tree(entries, root_path)
         if collapsed_dirs:
-            self._apply_collapsed(self._tree_nodes, collapsed_dirs)
+            self._collapsed_dirs.update(collapsed_dirs)
+        self._apply_collapsed(self._tree_nodes, self._collapsed_dirs)
         self._rebuild_table()
 
     def _apply_collapsed(self, nodes: list[TreeNode], collapsed_dirs: set[str]) -> None:
@@ -181,21 +184,26 @@ class FileTreeTable(DataTable):
 
     def get_collapsed_dirs(self) -> set[str]:
         """Return relative paths of all currently collapsed directories."""
-        collapsed: set[str] = set()
-        self._collect_collapsed(self._tree_nodes, collapsed)
-        return collapsed
+        self._sync_collapsed_from_tree()
+        return set(self._collapsed_dirs)
 
-    def _collect_collapsed(self, nodes: list[TreeNode], collapsed: set[str]) -> None:
+    def _sync_collapsed_from_tree(self) -> None:
+        """Sync persistent collapsed set from current tree node state."""
+        self._update_collapsed(self._tree_nodes)
+
+    def _update_collapsed(self, nodes: list[TreeNode]) -> None:
         for node in nodes:
             if node.is_dir:
-                if not node.expanded:
-                    try:
-                        rel = str(node.path.relative_to(self._root_path))
-                    except ValueError:
-                        rel = node.path.name
-                    collapsed.add(rel)
+                try:
+                    rel = str(node.path.relative_to(self._root_path))
+                except ValueError:
+                    rel = node.path.name
+                if node.expanded:
+                    self._collapsed_dirs.discard(rel)
+                else:
+                    self._collapsed_dirs.add(rel)
                 if node.children:
-                    self._collect_collapsed(node.children, collapsed)
+                    self._update_collapsed(node.children)
 
     def get_current_entry(self) -> FileEntry | None:
         """Return the FileEntry for the currently highlighted row."""

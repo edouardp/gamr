@@ -126,11 +126,11 @@ async def test_app_applies_and_captures_persistent_widget_state(tmp_path: Path, 
         assert split.split_fraction == 0.7
 
         tree.show_mtime = False
-        filter_bar.selected_filter_ids = {"staged"}
+        filter_bar.selected_filter_ids = {"modified"}
         split.split_fraction = 0.6
         app._save_state()
 
     restored = AppState.load(tmp_path)
     assert not restored.show_mtime
-    assert restored.active_filter_ids == {"staged"}
+    assert restored.active_filter_ids == {"modified"}
     assert restored.split_fraction == 0.6
