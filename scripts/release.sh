@@ -32,6 +32,7 @@ echo "==> Bumping $CURRENT -> $NEW"
 
 # --- Update version ---
 sed -i '' "s/^version = \"$CURRENT\"/version = \"$NEW\"/" pyproject.toml
+uv lock
 
 # --- Update CHANGELOG ---
 DATE=$(date +%Y-%m-%d)
