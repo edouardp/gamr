@@ -10,7 +10,6 @@
   - Fixed tab not switching focus to preview pane
   - Reduced lag on drag-to-select line highlighting (throttled updates)
 
-
 ## 0.1.4 (2026-06-11)
 
   - Replaced filter buttons (M, A, D, ?, S) with single `g` keybinding for git modified filter
