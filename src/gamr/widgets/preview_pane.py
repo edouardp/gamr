@@ -297,11 +297,11 @@ class PreviewPane(Widget):
 
     def action_page_down(self) -> None:
         scroller = self.query_one("#preview-scroll", VerticalScroll)
-        scroller.scroll_to(y=scroller.scroll_y + scroller.size.height - 4, animate=False)
+        scroller.scroll_to(y=scroller.scroll_y + scroller.size.height - 4)
 
     def action_page_up(self) -> None:
         scroller = self.query_one("#preview-scroll", VerticalScroll)
-        scroller.scroll_to(y=max(0, scroller.scroll_y - scroller.size.height + 4), animate=False)
+        scroller.scroll_to(y=max(0, scroller.scroll_y - scroller.size.height + 4))
 
     def action_next_change(self) -> None:
         """Jump to the next change hunk not currently visible."""
@@ -590,12 +590,21 @@ class PreviewPane(Widget):
     def get_source_line_at_scroll(self) -> int:
         """Get the source file line number at the current scroll position."""
         scroller = self.query_one("#preview-scroll", VerticalScroll)
-        row = scroller.scroll_offset.y
+        # Stop any animation so we read the final intended position
+        scroller.stop_animation("scroll_y")
+        row = int(scroller.scroll_y)
         mapping = getattr(self, "_row_to_source", [])
         if not mapping:
             return row + 1
-        idx = min(row, len(mapping) - 1)
-        return mapping[idx] if idx >= 0 else 1
+        # Find the first valid source line at or after the scroll position
+        for i in range(min(row, len(mapping) - 1), len(mapping)):
+            if mapping[i] > 0:
+                return mapping[i]
+        # Fall back: search backwards
+        for i in range(min(row, len(mapping) - 1), -1, -1):
+            if mapping[i] > 0:
+                return mapping[i]
+        return 1
 
     def scroll_to_source_line(self, source_line: int) -> None:
         """Scroll to the display row corresponding to a source line number."""
@@ -632,16 +641,8 @@ class PreviewPane(Widget):
         self._last_rendered_path = self.current_path
         scroller = self.query_one("#preview-scroll", VerticalScroll)
         if restore_line > 1:
-            # Restore to a specific source line (preserving scroll across re-renders)
-            mapping = getattr(self, "_row_to_source", [])
-            if mapping:
-                for display_row, src in enumerate(mapping):
-                    if src >= restore_line:
-                        scroller.scroll_to(0, display_row, animate=False)
-                        return
-                scroller.scroll_to(0, len(mapping) - 1, animate=False)
-            else:
-                scroller.scroll_to(0, restore_line - 1, animate=False)
+            scroller.stop_animation("scroll_y")
+            self.scroll_to_source_line(restore_line)
         elif scroll_to_top:
             scroller.scroll_home(animate=False)
 

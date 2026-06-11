@@ -421,13 +421,21 @@ class GamrApp(App):
     def _cycle_diff_mode(self, direction: int) -> None:
         """Cycle through diff modes, preserving scroll position by source line."""
         modes = list(DiffMode)
-        idx = modes.index(self._diff_mode)
+        old_mode = self._diff_mode
+        idx = modes.index(old_mode)
         self._diff_mode = modes[(idx + direction) % len(modes)]
         tree = self.query_one(FileTreeTable)
         entry = tree.get_current_entry()
         if entry and self._is_previewable(entry):
             preview = self.query_one(PreviewPane)
             source_line = preview.get_source_line_at_scroll()
+            # Unified diff only shows changes, so its scroll position maps to
+            # change locations, not the user's original position. Use the saved
+            # position from before we entered unified mode.
+            if old_mode == DiffMode.UNIFIED:
+                source_line = self._scroll_positions.get(entry.path, source_line)
+            else:
+                self._scroll_positions[entry.path] = source_line
             preview.invalidate()
             self._show_preview_for(entry, scroll_to_top=False, restore_line=source_line)
 
