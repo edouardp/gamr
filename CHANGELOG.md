@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.5 (2026-06-11)
+
+  - Added vim-style keybindings: `j`/`k` to navigate file tree and scroll preview
+  - Arrow keys and page up/down now work in preview pane when focused via tab
+  - `space` in preview pane scrolls down a page (with 4-line overlap)
+  - `J`/`n` and `K`/`N` jump to next/prev diff hunk in full diff and gutter modes
+  - Hunk navigation shows 3 lines of context above the target
+  - Fixed tab not switching focus to preview pane
+  - Reduced lag on drag-to-select line highlighting (throttled updates)
+
+
 ## 0.1.4 (2026-06-11)
 
   - Replaced filter buttons (M, A, D, ?, S) with single `g` keybinding for git modified filter
