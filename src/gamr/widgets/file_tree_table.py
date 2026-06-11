@@ -118,6 +118,8 @@ class FileTreeTable(DataTable):
         Binding("space", "toggle_node", "Expand/Collapse", show=False),
         Binding("right", "expand_node", "Expand", show=False),
         Binding("left", "collapse_node", "Collapse", show=False),
+        Binding("j", "cursor_down", "Down", show=False),
+        Binding("k", "cursor_up", "Up", show=False),
     ]
 
     show_status = reactive(True)

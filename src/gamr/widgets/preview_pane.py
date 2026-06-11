@@ -21,6 +21,7 @@ from pathlib import Path
 from rich.syntax import Syntax
 from rich.text import Text
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
 from textual.events import Click
 from textual.reactive import reactive
@@ -211,6 +212,22 @@ class _PreviewContent(Static):
 class PreviewPane(Widget):
     """Displays file contents with syntax highlighting or a diff view."""
 
+    can_focus = True
+
+    BINDINGS = [
+        Binding("j", "scroll_down", "Scroll down", show=False),
+        Binding("k", "scroll_up", "Scroll up", show=False),
+        Binding("down", "scroll_down", "Scroll down", show=False),
+        Binding("up", "scroll_up", "Scroll up", show=False),
+        Binding("space", "page_down", "Page down", show=False),
+        Binding("pagedown", "page_down", "Page down", show=False),
+        Binding("pageup", "page_up", "Page up", show=False),
+        Binding("J", "next_change", "Next change", show=False),
+        Binding("n", "next_change", "Next change", show=False),
+        Binding("K", "prev_change", "Prev change", show=False),
+        Binding("N", "prev_change", "Prev change", show=False),
+    ]
+
     current_path: reactive[Path | None] = reactive(None)
     show_diff = reactive(DiffMode.FULL)
     syntax_theme: reactive[str] = reactive("monokai")
@@ -272,6 +289,63 @@ class PreviewPane(Widget):
                 yield _PreviewContent(id="preview-content")
             yield DiffOverview(id="diff-overview")
 
+    def action_scroll_down(self) -> None:
+        self.query_one("#preview-scroll", VerticalScroll).scroll_down()
+
+    def action_scroll_up(self) -> None:
+        self.query_one("#preview-scroll", VerticalScroll).scroll_up()
+
+    def action_page_down(self) -> None:
+        scroller = self.query_one("#preview-scroll", VerticalScroll)
+        scroller.scroll_to(y=scroller.scroll_y + scroller.size.height - 4, animate=False)
+
+    def action_page_up(self) -> None:
+        scroller = self.query_one("#preview-scroll", VerticalScroll)
+        scroller.scroll_to(y=max(0, scroller.scroll_y - scroller.size.height + 4), animate=False)
+
+    def action_next_change(self) -> None:
+        """Jump to the next change hunk not currently visible."""
+        hunks = self._change_hunk_starts()
+        if not hunks:
+            return
+        scroller = self.query_one("#preview-scroll", VerticalScroll)
+        visible_bottom = int(scroller.scroll_y + scroller.size.height)
+        mapping = getattr(self, "_row_to_source", [])
+        bottom_source = mapping[min(visible_bottom, len(mapping) - 1)] if mapping else 0
+        for line in hunks:
+            if line > bottom_source:
+                self._scroll_to_source_with_context(line)
+                return
+
+    def action_prev_change(self) -> None:
+        """Jump to the previous change hunk not currently visible."""
+        hunks = self._change_hunk_starts()
+        if not hunks:
+            return
+        scroller = self.query_one("#preview-scroll", VerticalScroll)
+        visible_top = int(scroller.scroll_y)
+        mapping = getattr(self, "_row_to_source", [])
+        top_source = mapping[min(visible_top, len(mapping) - 1)] if mapping else 0
+        for line in reversed(hunks):
+            if line < top_source:
+                self._scroll_to_source_with_context(line)
+                return
+
+    def _change_hunk_starts(self) -> list[int]:
+        """Return the first line of each contiguous group of changed lines."""
+        lines = getattr(self, "_change_source_lines", [])
+        if not lines:
+            return []
+        starts = [lines[0]]
+        for i in range(1, len(lines)):
+            if lines[i] != lines[i - 1] + 1:
+                starts.append(lines[i])
+        return starts
+
+    def _scroll_to_source_with_context(self, source_line: int, context: int = 3) -> None:
+        """Scroll so source_line is visible with context lines above it."""
+        self.scroll_to_source_line(max(1, source_line - context))
+
     def _update_header(self) -> None:
         """Update the header with current filename and diff mode."""
         name = self.current_path.name if self.current_path else ""
@@ -295,6 +369,7 @@ class PreviewPane(Widget):
         if content is None:
             return
         styled, _total, _added, _removed = self._render_highlighted(path, content)
+        self._change_source_lines = []
         self._update_overview_for_diff(0, set(), {})
         self._set_content(styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
 
@@ -308,6 +383,7 @@ class PreviewPane(Widget):
         else:
             content = ""
         styled, total_lines, added_lines, removed_context = self._render_highlighted(path, content, diff_text=diff_text)
+        self._change_source_lines = sorted(added_lines | set(removed_context.keys()))
         self._update_overview_for_diff(total_lines, added_lines, removed_context)
         self._set_content(styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
 
@@ -354,6 +430,7 @@ class PreviewPane(Widget):
             row_to_source.append(i)
 
         self._row_to_source = row_to_source
+        self._change_source_lines = sorted(changed_lines | pure_added | has_deletion_after)
         overview = self.query_one(DiffOverview)
         if has_any_markers:
             overview.set_gutter_map(total_lines, changed_lines, pure_added, has_deletion_after)
@@ -399,6 +476,7 @@ class PreviewPane(Widget):
                 row_to_source.append(current_line)
 
         self._row_to_source = row_to_source
+        self._change_source_lines = []
 
         self._set_content(styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
         # Hide overview bar in unified diff mode
@@ -642,7 +720,10 @@ class PreviewPane(Widget):
         new_row = scroller.scroll_offset.y + offset
         if new_row != getattr(self, "_drag_current_row", None):
             self._drag_current_row = new_row
-            self._update_selection_highlight()
+            # Throttle: schedule highlight update, cancelling any pending one
+            if hasattr(self, "_highlight_timer") and self._highlight_timer:
+                self._highlight_timer.stop()
+            self._highlight_timer = self.set_timer(0.03, self._update_selection_highlight)
 
     def _update_selection_highlight(self) -> None:
         """Re-render content with selection highlight on dragged lines."""
