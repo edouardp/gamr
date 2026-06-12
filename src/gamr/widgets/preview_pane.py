@@ -138,11 +138,11 @@ class DiffOverview(Static):
         """Render using braille characters (4 source lines per row via 2x2 dot grid)."""
         rows_available = height
         # When content fits on screen (total_lines <= height), use 1:1 mapping
-        # so dots align with the actual source lines visible in the preview.
+        # so each braille row maps to exactly 4 source lines without scaling.
         if total_lines <= rows_available:
             return self._render_braille_1to1(total_lines, rows_available, green, red, orange)
 
-        lines_per_dot = max(1, total_lines / (rows_available * 4))
+        lines_per_dot = total_lines / (rows_available * 4)
         result = Text(no_wrap=True)
 
         for row in range(rows_available):
@@ -175,21 +175,32 @@ class DiffOverview(Static):
     def _render_braille_1to1(
         self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]
     ) -> Text:
-        """Render braille with 1:1 line-to-row mapping when content fits on screen."""
+        """Render braille with 1:1 dot-to-line mapping when content fits in available rows."""
         result = Text(no_wrap=True)
         for row in range(height):
-            line = row + 1
-            if line <= total_lines and (line in green or line in red or line in orange):
-                # Light top-left dot for a single line
-                char = chr(0x2800 + 0x01)
-                if line in orange or (line in green and line in red):
-                    result.append(char + "\n", style="#ff8c00")
-                elif line in green:
-                    result.append(char + "\n", style="green")
-                else:
-                    result.append(char + "\n", style="red")
-            else:
-                result.append("⠀\n", style="dim")
+            dots = 0
+            style = "dim"
+            has_green = False
+            has_red = False
+            has_orange = False
+            for dot in range(4):
+                line = row * 4 + dot + 1
+                if line > total_lines:
+                    break
+                if line in green or line in red or line in orange:
+                    dots |= [0x01, 0x02, 0x04, 0x40][dot]
+                    has_green = has_green or line in green
+                    has_red = has_red or line in red
+                    has_orange = has_orange or line in orange
+
+            char = chr(0x2800 + dots)
+            if has_orange or (has_green and has_red):
+                style = "#ff8c00"
+            elif has_green:
+                style = "green"
+            elif has_red:
+                style = "red"
+            result.append(char + "\n", style=style)
         return result
 
     def watch_use_braille(self, value: bool) -> None:

@@ -39,12 +39,15 @@ uv run gamr [path]
 | Key      | Action                                             |
 | -------- | -------------------------------------------------- |
 | `↑`/`↓`  | Navigate files                                     |
+| `j`/`k`  | Navigate files (tree) or scroll (preview)          |
 | `→`      | Expand directory                                   |
 | `←`      | Collapse directory (or parent if on file)          |
-| `space`  | Toggle expand/collapse                             |
+| `space`  | Toggle expand/collapse (tree) or page down (preview)|
 | `v`      | Cycle view mode (tree → flat name → flat path)     |
 | `d`      | Cycle diff mode (full → gutter → unified)           |
 | `D`      | Cycle diff mode reverse                            |
+| `J`/`n`  | Jump to next diff hunk (preview)                   |
+| `K`/`N`  | Jump to previous diff hunk (preview)               |
 | `g`      | Toggle git modified filter                         |
 | `f`      | Toggle follow mode (auto-select last changed file) |
 | `ctrl+f` | Focus search input                                 |

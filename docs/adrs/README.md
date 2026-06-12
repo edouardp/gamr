@@ -26,3 +26,4 @@
 | [022](022-preview-stability.md) | Preview pane stability during file watcher updates |
 | [023](023-copy-file-reference.md) | Copy file reference from preview pane |
 | [024](024-single-git-modified-filter.md) | Single `g` keybinding for git modified filter |
+| [025](025-vim-keybindings-preview-focus.md) | Vim-style keybindings and preview pane focus |

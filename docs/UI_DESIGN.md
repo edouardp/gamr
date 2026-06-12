@@ -67,6 +67,11 @@
 - Automatically shows the highlighted file's content
 - **d** — Cycle diff mode forward: full diff → gutter → unified diff
 - **D** (shift) — Cycle diff mode backward
+- **j**/**k** — Scroll up/down one line (when preview is focused)
+- **space** — Page down (when preview is focused)
+- **J**/**n** — Jump to next diff hunk not currently visible
+- **K**/**N** — Jump to previous diff hunk not currently visible
+- Hunk jumps show 3 lines of context above the target; no-op if no changes
 - Diff modes only apply to files with git changes; clean files show gutter mode as plain file
 - Full diff — Syntax-highlighted full file with `+`/`-` markers and colored backgrounds (green `#002200` for added, red `#300000` for removed)
 - Gutter — Syntax-highlighted file with a change column after line numbers: orange `●` for changed lines, green `+` for added, red `_` where deletions follow. When file has no changes, renders as plain file (no gutter column, no overview bar).
@@ -75,11 +80,12 @@
 - Monokai background (`#272822`) fills the entire pane
 - Header bar (pinned, doesn't scroll) shows filename on left, diff mode on right
 - When switching diff modes, scroll position is preserved by source line number mapping
+- Scroll position is saved before entering unified diff mode and restored when leaving (unified diff only shows changes, so its scroll position can't represent the user's full-file position)
 - Preview doesn't change when new files appear in the tree (stable during file watcher updates)
 - When the previewed file changes on disk, scroll position is preserved by source line mapping
 - The 10-second timestamp refresh does not reset preview scroll
 - **Double-click** a line → copies `path:line` to clipboard, flashes highlight
-- **Drag** across lines → live highlight, copies `path:start-end` on release
+- **Drag** across lines → live highlight (throttled to ~33fps), copies `path:start-end` on release
 - Invalid lines in unified diff (headers, removed) are not selectable
 
 ## Columns
