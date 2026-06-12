@@ -22,8 +22,8 @@ Add `~/.config/gamr/preferences.toml` for user-level defaults, parsed with Pytho
 
 ### Current settings
 
-| Section | Key | Type | Default | Description |
-|---------|-----|------|---------|-------------|
+| Section     | Key          | Type            | Default                         | Description              |
+| ----------- | ------------ | --------------- | ------------------------------- | ------------------------ |
 | `[preview]` | `diff_modes` | list of strings | `["full", "gutter", "unified"]` | Modes `d` cycles through |
 
 ### Consequences

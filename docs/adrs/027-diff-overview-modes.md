@@ -14,13 +14,13 @@ The diff overview bar needs to show change distribution at varying file sizes, f
 
 Five overview modes cycled via `o` keybinding, all rendering on the right side of each cell for visual consistency:
 
-| Mode | Density | Characters |
-|------|---------|------------|
-| Line | 1×/row | `▐` or space |
-| Quadrant | 2×/row | `▝` `▗` `▐` |
-| Sextant | 3×/row | Right-column sextant (U+1FB00 block) |
-| Braille | 4×/row | Right-column braille dots |
-| Off | — | Bar hidden |
+| Mode     | Density | Characters                           |
+| -------- | ------- | ------------------------------------ |
+| Line     | 1×/row  | `▐` or space                         |
+| Quadrant | 2×/row  | `▝` `▗` `▐`                          |
+| Sextant  | 3×/row  | Right-column sextant (U+1FB00 block) |
+| Braille  | 4×/row  | Right-column braille dots            |
+| Off      | —       | Bar hidden                           |
 
 ### Scaling principles
 

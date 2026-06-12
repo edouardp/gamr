@@ -85,14 +85,22 @@ def fuzzy_filter(entries: list[FileEntry], query: str) -> list[FileEntry]:
 
     query_lower = query.lower()
     scored = []
+
+    # If query contains . or / it's likely a literal pattern — use substring matching
+    use_substring = "." in query or "/" in query
+
     for entry in entries:
-        # Score against both filename and full path, take the better match
-        name_score = fuzz.partial_ratio(query_lower, entry.name.lower())
-        path_score = fuzz.partial_ratio(query_lower, str(entry.path).lower())
-        score = max(name_score, path_score)
-        # Threshold of 50 balances recall vs noise for partial matching
-        if score >= FUZZY_THRESHOLD:
-            scored.append((score, entry))
+        name_lower = entry.name.lower()
+        path_lower = str(entry.path).lower()
+        if use_substring:
+            if query_lower in name_lower or query_lower in path_lower:
+                scored.append((100, entry))
+        else:
+            name_score = fuzz.partial_ratio(query_lower, name_lower)
+            path_score = fuzz.partial_ratio(query_lower, path_lower)
+            score = max(name_score, path_score)
+            if score >= FUZZY_THRESHOLD:
+                scored.append((score, entry))
 
     scored.sort(key=lambda x: x[0], reverse=True)
     return [entry for _, entry in scored]

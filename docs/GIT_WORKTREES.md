@@ -90,12 +90,12 @@ self._scanner.start_watching(
 
 ## Risk Areas to Test
 
-| Area | Concern |
-|------|---------|
-| Path relativization | All `path.relative_to(self.repo_root)` must use the worktree root, not the gitdir |
-| `_GitHandler` state files | `HEAD` and `index` are per-worktree (in `controldir`); `packed-refs` is shared (in `commondir`) |
-| `info/exclude` | Exists in both per-worktree and shared dirs; verify which takes precedence |
-| Default ignores | The `.git` ignore pattern in `FileScanner` must not hide the `.git` *file* before the provider reads it (it won't — provider inits first) |
+| Area                      | Concern                                                                                                                                   |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Path relativization       | All `path.relative_to(self.repo_root)` must use the worktree root, not the gitdir                                                         |
+| `_GitHandler` state files | `HEAD` and `index` are per-worktree (in `controldir`); `packed-refs` is shared (in `commondir`)                                           |
+| `info/exclude`            | Exists in both per-worktree and shared dirs; verify which takes precedence                                                                |
+| Default ignores           | The `.git` ignore pattern in `FileScanner` must not hide the `.git` _file_ before the provider reads it (it won't — provider inits first) |
 
 ## Scope
 

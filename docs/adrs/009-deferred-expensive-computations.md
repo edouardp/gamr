@@ -14,12 +14,12 @@ Computing diff stats (+/- lines) and blame info for every file blocks startup. L
 
 **Defer all expensive per-file computations to background workers.** The initial `FileIndex.build()` only collects file metadata (stat) and git status (a single `porcelain.status()` call). Per-file operations run after the UI is visible:
 
-| Data | When computed | Worker group |
-|------|--------------|-------------|
-| File size, mtime | `build()` (instant via `stat()`) | — |
-| Git status | `build()` (single `porcelain.status()`) | — |
-| Diff stats (+/- lines) | Background after mount | `diff_stats` |
-| Blame (author, time) | On-demand when columns toggled on | `blame` |
+| Data                   | When computed                           | Worker group |
+| ---------------------- | --------------------------------------- | ------------ |
+| File size, mtime       | `build()` (instant via `stat()`)        | —            |
+| Git status             | `build()` (single `porcelain.status()`) | —            |
+| Diff stats (+/- lines) | Background after mount                  | `diff_stats` |
+| Blame (author, time)   | On-demand when columns toggled on       | `blame`      |
 
 ### Consequences
 

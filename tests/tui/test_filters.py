@@ -1,4 +1,4 @@
-"""Tests for filtering: g toggle, ctrl+f focus, state preservation.
+"""Tests for filtering: g toggle, / focus, state preservation.
 
 Fixture `tree_repo` provides:
     docs/readme.md       (clean)
@@ -55,7 +55,7 @@ async def test_g_toggles_modified_filter(tree_repo: Path) -> None:
 async def test_ctrl_f_focuses_search_input(tree_repo: Path) -> None:
     """
     Start state:  tree has focus (default after launch)
-    Action:       press ctrl+f
+    Action:       press /
     Expected:     focus moves to the search input in the filter bar
 
         ┌─ Filter Bar ─────────────────────┐
@@ -65,7 +65,7 @@ async def test_ctrl_f_focuses_search_input(tree_repo: Path) -> None:
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
-        await pilot.press("ctrl+f")
+        await pilot.press("/")
         await pilot.pause()
         focused = app.focused
         assert focused is not None

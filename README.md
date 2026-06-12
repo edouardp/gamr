@@ -66,19 +66,19 @@ Column headers are clickable to sort (ascending → descending → none).
 
 ```
 src/gamr/
-├── app.py              # Textual app, keybindings, orchestration
-├── commands.py         # Command palette provider
-├── models.py           # FileEntry, GitStatus, DiffMode, etc.
-├── state.py            # Persistent state management
-├── preferences.py      # User preferences (~/.config/gamr/preferences.toml)
-├── gamr.tcss          # Stylesheet
+├── app.py                  # Textual app, keybindings, orchestration
+├── commands.py             # Command palette provider
+├── models.py               # FileEntry, GitStatus, DiffMode, etc.
+├── state.py                # Persistent state management
+├── preferences.py          # User preferences (~/.config/gamr/preferences.toml)
+├── gamr.tcss               # Stylesheet
 ├── services/
-│   ├── diff_parser.py  # Unified diff parsing into DiffData
-│   ├── file_scanner.py # Watchdog + polling fallback + git state watcher
-│   ├── file_index.py   # Merges scanner + git into FileEntry list
-│   ├── git_provider.py # GitProvider ABC + Dulwich implementation
-│   ├── filter.py       # Fuzzy and status filtering
-│   └── icons.py        # lsd icons.yaml loader
+│   ├── diff_parser.py      # Unified diff parsing into DiffData
+│   ├── file_scanner.py     # Watchdog + polling fallback + git state watcher
+│   ├── file_index.py       # Merges scanner + git into FileEntry list
+│   ├── git_provider.py     # GitProvider ABC + Dulwich implementation
+│   ├── filter.py           # Fuzzy and status filtering
+│   └── icons.py            # lsd icons.yaml loader
 └── widgets/
     ├── file_tree_table.py  # DataTable with tree semantics
     ├── tree_data.py        # Tree building and sorting logic

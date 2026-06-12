@@ -16,11 +16,11 @@ Double-click or drag-select lines in the preview pane to copy a file:line refere
 
 ### Interactions
 
-| Action | Result | Feedback |
-|--------|--------|----------|
-| Double-click | Copy `path:line` | Flash highlight + notification |
+| Action            | Result                | Feedback                                            |
+| ----------------- | --------------------- | --------------------------------------------------- |
+| Double-click      | Copy `path:line`      | Flash highlight + notification                      |
 | Drag across lines | Copy `path:start-end` | Live highlight during drag, notification on release |
-| Single click | Nothing | — |
+| Single click      | Nothing               | —                                                   |
 
 ### Source Line Mapping
 

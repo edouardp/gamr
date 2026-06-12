@@ -56,7 +56,7 @@ class GamrApp(App):
     BINDINGS = [
         # Navigation & focus
         Binding("tab", "switch_pane", "Switch pane", show=True, priority=True),
-        Binding("ctrl+f", "focus_filter", "Filter", show=True, priority=True),
+        Binding("/", "focus_filter", "Filter", show=True, priority=True),
         # Modes
         Binding("f", "toggle_follow", "Follow", show=True, priority=True),
         Binding("v", "cycle_view", "View mode", show=True, priority=True),

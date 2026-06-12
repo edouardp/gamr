@@ -20,7 +20,7 @@ PREVIEW_BG = "#272822"
 DIFF_PAD_WIDTH = 200
 
 # Fuzzy search score threshold (0-100). Files below this are excluded.
-FUZZY_THRESHOLD = 50
+FUZZY_THRESHOLD = 70
 
 # File watcher poll interval in seconds
 WATCHER_POLL_INTERVAL = 0.5

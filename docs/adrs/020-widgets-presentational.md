@@ -16,12 +16,12 @@ Widgets are **purely presentational**. They render what they're told and report 
 
 ### Responsibility Split
 
-| Layer | Responsibility |
-|-------|---------------|
-| `FileTreeTable` | Render rows, report cursor movements (always), handle expand/collapse |
-| `PreviewPane` | Render content, guard against same-file re-renders (`_last_rendered_path`) |
-| `GamrApp` | Decide whether a highlight event should trigger a preview update |
-| `models.py` / `services/` | Pure data, no UI awareness |
+| Layer                     | Responsibility                                                             |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `FileTreeTable`           | Render rows, report cursor movements (always), handle expand/collapse      |
+| `PreviewPane`             | Render content, guard against same-file re-renders (`_last_rendered_path`) |
+| `GamrApp`                 | Decide whether a highlight event should trigger a preview update           |
+| `models.py` / `services/` | Pure data, no UI awareness                                                 |
 
 ### What Changed
 

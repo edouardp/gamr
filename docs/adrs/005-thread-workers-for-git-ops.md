@@ -16,13 +16,13 @@ Use Textual's `@work(thread=True)` decorator to run blocking operations in threa
 
 ### Concurrency Architecture
 
-| Operation | Worker Type | Strategy |
-|-----------|------------|----------|
-| Git status | Thread, exclusive | Debounced after file changes |
-| Diff stats (+/- lines) | Thread, exclusive | Deferred after initial load |
-| Git blame/log | Thread, group | Progressive per-file updates |
-| File watcher | Thread, long-running | Polls queue every 0.5s |
-| Fuzzy filter | Inline (sync) | Fast enough for <10k files |
+| Operation              | Worker Type          | Strategy                     |
+| ---------------------- | -------------------- | ---------------------------- |
+| Git status             | Thread, exclusive    | Debounced after file changes |
+| Diff stats (+/- lines) | Thread, exclusive    | Deferred after initial load  |
+| Git blame/log          | Thread, group        | Progressive per-file updates |
+| File watcher           | Thread, long-running | Polls queue every 0.5s       |
+| Fuzzy filter           | Inline (sync)        | Fast enough for <10k files   |
 
 ### Key Constraints
 
