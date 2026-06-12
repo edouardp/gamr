@@ -206,7 +206,11 @@ class GamrApp(App):
         self.workers.cancel_group(self, "blame")
 
         self._rebuild_and_reload_tree(tree, collapsed)
-        self._refresh_preview_if_needed(changed_paths, git_changed)
+        if self._follow_mode and changed_paths:
+            # Follow mode handles preview — skip normal refresh to avoid restoring old scroll
+            pass
+        else:
+            self._refresh_preview_if_needed(changed_paths, git_changed)
         self._handle_follow_mode(changed_paths, tree)
         self._restart_background_workers(tree, changed_paths, git_changed)
 
