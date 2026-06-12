@@ -1,13 +1,14 @@
-"""User preferences loaded from ~/.config/gamr/preferences.toml."""
+"""User preferences loaded from $XDG_CONFIG_HOME/gamr/preferences.toml."""
 
 from __future__ import annotations
 
+import os
 import tomllib
 from pathlib import Path
 
 from gamr.models import DiffMode
 
-_PREFS_PATH = Path.home() / ".config" / "gamr" / "preferences.toml"
+_PREFS_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "gamr" / "preferences.toml"
 
 _DIFF_MODE_NAMES = {m.value: m for m in DiffMode}
 

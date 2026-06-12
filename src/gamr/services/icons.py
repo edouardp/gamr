@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-_LSD_CONFIG_DIR = Path.home() / ".config" / "lsd"
+_LSD_CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "lsd"
 
 
 class IconResolver:

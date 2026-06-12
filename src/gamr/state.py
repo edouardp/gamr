@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -14,9 +15,10 @@ from gamr.widgets.file_tree_table import ViewMode
 
 
 def _config_state_path(target_path: Path) -> Path:
-    """Return ~/.config/gamr/state/<hash>.json for a target path."""
+    """Return $XDG_CONFIG_HOME/gamr/state/<hash>.json for a target path."""
+    config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
     path_hash = hashlib.sha256(str(target_path.resolve()).encode()).hexdigest()[:16]
-    return Path.home() / ".config" / "gamr" / "state" / f"{path_hash}.json"
+    return config_home / "gamr" / "state" / f"{path_hash}.json"
 
 
 if TYPE_CHECKING:
