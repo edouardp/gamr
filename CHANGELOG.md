@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.13 (2026-06-12)
+
+  - Cross-platform fixes for Windows, BSD, and Linux
+  - Git paths use forward slashes consistently (fixes Dulwich on Windows)
+  - Gitignore filter uses POSIX paths (fixes ignore rules on Windows)
+  - Flat path display uses forward slashes on all platforms
+  - State file path comparison uses Path.resolve() (handles Windows drive letter casing)
+  - Line counting uses explicit UTF-8 encoding (avoids Windows locale issues)
+  - File watcher always polls alongside native backend (fixes silent event loss on BSD/Linux)
+
+
 ## 0.1.12 (2026-06-12)
 
   - New "Lines" column: shows line count for text files, file size (grey) for binary
