@@ -6,15 +6,6 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import OptionList, Static
 
-FRUITS = {
-    "Apple": "A crisp, sweet fruit. Great for pies and snacking.",
-    "Banana": "A tropical favourite. Rich in potassium.",
-    "Cherry": "Small, tart, and perfect for desserts.",
-    "Dragonfruit": "Exotic cactus fruit with mild, sweet flesh.",
-    "Elderberry": "Dark berry used in syrups and wines.",
-    "Fig": "Soft, honey-sweet fruit. Pairs well with cheese.",
-}
-
 
 class ChooserApp(App):
     ENABLE_COMMAND_PALETTE = False
@@ -45,7 +36,7 @@ class ChooserApp(App):
         elif items:
             self.items = {item: "" for item in items}
         else:
-            self.items = FRUITS
+            self.items = {}
 
     def compose(self) -> ComposeResult:
         if self.title_text:
