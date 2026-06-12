@@ -7,7 +7,6 @@
   - Braille/line overview mode now persisted between sessions
   - Fixed braille diff overview not filling the bar for shorter files
 
-
 ## 0.1.6 (2026-06-12)
 
   - Smooth scrolling for page up/down/space in preview pane
