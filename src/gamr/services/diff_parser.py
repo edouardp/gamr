@@ -60,7 +60,16 @@ def parse_diff_hunks(diff_text: str | None) -> DiffData:
     return DiffData(added_lines, changed_lines, removed_context, pending_removed)
 
 
-def compute_gutter_markers(diff_text: str, total_lines: int) -> tuple[set[int], set[int], set[int]]:
+@dataclass(frozen=True, slots=True)
+class GutterMarkers:
+    """Line sets for gutter-mode rendering."""
+
+    changed: set[int]
+    pure_added: set[int]
+    has_deletion_after: set[int]
+
+
+def compute_gutter_markers(diff_text: str, total_lines: int) -> GutterMarkers:
     """Compute gutter markers from a unified diff.
 
     Returns:
@@ -73,4 +82,4 @@ def compute_gutter_markers(diff_text: str, total_lines: int) -> tuple[set[int], 
     }
     if data.trailing_removed and total_lines > 0:
         has_deletion_after.add(total_lines)
-    return data.changed_lines, pure_added, has_deletion_after
+    return GutterMarkers(data.changed_lines, pure_added, has_deletion_after)

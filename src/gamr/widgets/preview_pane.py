@@ -16,6 +16,7 @@ decides scroll position on its own.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from rich.syntax import Syntax
@@ -31,6 +32,18 @@ from textual.widgets import Static
 from gamr.config import DIFF_PAD_WIDTH
 from gamr.models import DiffMode
 from gamr.services.diff_parser import compute_gutter_markers, parse_diff_hunks
+
+
+@dataclass
+class RenderResult:
+    """Result from _render_highlighted — avoids a 6-tuple."""
+
+    styled: Text
+    total_lines: int
+    added_lines: set[int] = field(default_factory=set)
+    removed_context: dict[int, list[str]] = field(default_factory=dict)
+    display_green: set[int] = field(default_factory=set)
+    display_red: set[int] = field(default_factory=set)
 
 
 class PreviewHeader(Static):
@@ -471,10 +484,10 @@ class PreviewPane(Widget):
         content = self._read_file(path)
         if content is None:
             return
-        styled, _total, _added, _removed, _dg, _dr = self._render_highlighted(path, content)
+        result = self._render_highlighted(path, content)
         self._change_source_lines = []
         self._update_overview_for_diff(0, set(), {})
-        self._set_content(styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
+        self._set_content(result.styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
 
     def show_full_diff(self, path: Path, diff_text: str, *, scroll_to_top: bool = True, restore_line: int = 0) -> None:
         """Display file with syntax highlighting + diff markers."""
@@ -485,20 +498,18 @@ class PreviewPane(Widget):
                 return
         else:
             content = ""
-        styled, total_lines, added_lines, removed_context, display_green, display_red = self._render_highlighted(
-            path, content, diff_text=diff_text
-        )
-        self._change_source_lines = sorted(added_lines | set(removed_context.keys()))
+        r = self._render_highlighted(path, content, diff_text=diff_text)
+        self._change_source_lines = sorted(r.added_lines | set(r.removed_context.keys()))
         # Overview uses display-row positions (matching preview rendering)
         total_display_rows = len(self._row_to_source)
         overview = self.query_one(DiffOverview)
-        if total_display_rows > 0 and (display_green or display_red):
-            overview.set_display_row_map(total_display_rows, display_green, display_red)
+        if total_display_rows > 0 and (r.display_green or r.display_red):
+            overview.set_display_row_map(total_display_rows, r.display_green, r.display_red)
             overview.display = True
         else:
             overview.clear_overview()
             overview.display = False
-        self._set_content(styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
+        self._set_content(r.styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
 
     def show_gutter_diff(
         self, path: Path, diff_text: str, *, scroll_to_top: bool = True, restore_line: int = 0
@@ -510,21 +521,21 @@ class PreviewPane(Widget):
             return
 
         total_lines = len(content.splitlines())
-        changed_lines, pure_added, has_deletion_after = compute_gutter_markers(diff_text, total_lines)
-        gutter = (changed_lines, pure_added, has_deletion_after)
+        markers = compute_gutter_markers(diff_text, total_lines)
+        gutter = (markers.changed, markers.pure_added, markers.has_deletion_after)
 
-        styled, total_lines, _, _, _, _ = self._render_highlighted(path, content, gutter_markers=gutter)
+        r = self._render_highlighted(path, content, gutter_markers=gutter)
 
-        self._change_source_lines = sorted(changed_lines | pure_added | has_deletion_after)
+        self._change_source_lines = sorted(markers.changed | markers.pure_added | markers.has_deletion_after)
         overview = self.query_one(DiffOverview)
-        has_any_markers = bool(changed_lines or pure_added or has_deletion_after)
+        has_any_markers = bool(markers.changed or markers.pure_added or markers.has_deletion_after)
         if has_any_markers:
-            overview.set_gutter_map(total_lines, changed_lines, pure_added, has_deletion_after)
+            overview.set_gutter_map(r.total_lines, markers.changed, markers.pure_added, markers.has_deletion_after)
             overview.display = True
         else:
             overview.clear_overview()
             overview.display = False
-        self._set_content(styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
+        self._set_content(r.styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
 
     def show_diff_content(
         self, diff_text: str, *, path: Path | None = None, scroll_to_top: bool = True, restore_line: int = 0
@@ -622,16 +633,8 @@ class PreviewPane(Widget):
         content: str,
         diff_text: str | None = None,
         gutter_markers: tuple[set[int], set[int], set[int]] | None = None,
-    ) -> tuple[Text, int, set[int], dict[int, list[str]], set[int], set[int]]:
-        """Shared renderer: syntax-highlighted file with optional diff/gutter markers.
-
-        Args:
-            gutter_markers: (changed_lines, pure_added, has_deletion_after) for gutter mode.
-
-        Returns:
-            (styled, total_source_lines, added_lines, removed_context,
-             display_green, display_red) — last two are 1-indexed display row sets.
-        """
+    ) -> RenderResult:
+        """Shared renderer: syntax-highlighted file with optional diff/gutter markers."""
         diff_data = parse_diff_hunks(diff_text)
         added_lines = diff_data.added_lines
         removed_context = diff_data.removed_context
@@ -718,7 +721,7 @@ class PreviewPane(Widget):
 
         self._row_to_source = row_to_source
 
-        return styled, total_lines, added_lines, removed_context, display_green, display_red
+        return RenderResult(styled, total_lines, added_lines, removed_context, display_green, display_red)
 
     def _update_overview_for_diff(self, total_lines: int, added_lines: set[int], removed_context: dict) -> None:
         """Update the diff overview bar based on diff data."""
