@@ -216,12 +216,18 @@ class DiffOverview(Static):
 
     @staticmethod
     def _char_sextant(slots: list[bool]) -> str:
-        # Right column of sextant: bit positions 1, 3, 5
-        _BITS = [1, 3, 5]
-        bits = sum(1 << b for hit, b in zip(slots, _BITS, strict=True) if hit)
-        if bits == 0:
-            return " "
-        return chr(0x1FB00 + bits - 1)
+        # User-specified characters for right-column sextant rendering
+        _LOOKUP = {
+            (False, False, False): " ",
+            (True, False, False): "🬁",  # TR
+            (False, True, False): "🬇",  # MR
+            (False, False, True): "🬞",  # BR
+            (True, True, False): "🬉",  # TR MR
+            (True, False, True): "🬠",  # TR BR
+            (False, True, True): "🬦",  # MR BR
+            (True, True, True): "▐",  # TR MR BR (full right half)
+        }
+        return _LOOKUP[tuple(slots)]
 
     def watch_use_braille(self, value: bool) -> None:
         self._render_overview()
