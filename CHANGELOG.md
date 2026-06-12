@@ -16,7 +16,6 @@
   - Hidden blame toggle (`b`) from footer
   - ADR-028: bulk blame via tree diffing
 
-
 ## 0.1.11 (2026-06-12)
 
   - Toolbar with sextant logo (replaces plain search bar), swaps to search on `/`
