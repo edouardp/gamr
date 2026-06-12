@@ -82,7 +82,7 @@ src/gamr/
 └── widgets/
     ├── file_tree_table.py  # DataTable with tree semantics
     ├── tree_data.py        # Tree building and sorting logic
-    ├── filter_bar.py       # Search input + filter state
+    ├── toolbar.py          # Toolbar (logo + search input)
     ├── preview_pane.py     # Syntax highlighting + diff view
     └── split.py            # Resizable horizontal split
 ```
