@@ -202,16 +202,14 @@ class DiffOverview(Static):
         return result
 
     def _render_sextant(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
-        """Render using sextant characters (6 source lines per row via 2×3 grid).
+        """Render using sextant characters (3 source lines per row, right column only).
 
-        Sextants (U+1FB00–U+1FB3B) divide a cell into a 2×3 grid.
-        We use the left column (3 vertical positions) × 2 = 6 lines per row.
-        Bit layout: row0_left=0, row0_right=1, row1_left=2, row1_right=3, row2_left=4, row2_right=5
+        Sextants (U+1FB00–U+1FB3B) use a 2×3 grid. We use the right column
+        (bits 1, 3, 5) for a slim, visually clean overview.
         """
-        # Sextant base is U+1FB00; bits map to positions in the 2×3 grid
-        # Bit positions: 0=top-left, 1=top-right, 2=mid-left, 3=mid-right, 4=bot-left, 5=bot-right
-        # Full block (all 6) is U+2588 (█) since U+1FB00 + 63 isn't defined that way
-        lines_per_slot = total_lines / (height * 6)
+        # Right column bit positions: top-right=1, mid-right=3, bot-right=5
+        _RIGHT_BITS = [1, 3, 5]
+        lines_per_slot = total_lines / (height * 3)
         result = Text(no_wrap=True)
 
         for row in range(height):
@@ -219,20 +217,18 @@ class DiffOverview(Static):
             has_green = False
             has_red = False
             has_orange = False
-            for slot in range(6):
-                slot_start = int((row * 6 + slot) * lines_per_slot) + 1
-                slot_end = int((row * 6 + slot + 1) * lines_per_slot) + 1
+            for slot in range(3):
+                slot_start = int((row * 3 + slot) * lines_per_slot) + 1
+                slot_end = int((row * 3 + slot + 1) * lines_per_slot) + 1
                 slot_has = any(i in green or i in red or i in orange for i in range(slot_start, slot_end))
                 if slot_has:
-                    bits |= 1 << slot
+                    bits |= 1 << _RIGHT_BITS[slot]
                     has_green = has_green or any(i in green for i in range(slot_start, slot_end))
                     has_red = has_red or any(i in red for i in range(slot_start, slot_end))
                     has_orange = has_orange or any(i in orange for i in range(slot_start, slot_end))
 
             if bits == 0:
                 char = " "
-            elif bits == 63:
-                char = "\u2588"  # full block
             else:
                 char = chr(0x1FB00 + bits - 1)
 
