@@ -23,8 +23,8 @@ def _config_state_path(target_path: Path) -> Path:
 
 if TYPE_CHECKING:
     from gamr.widgets.file_tree_table import FileTreeTable
-    from gamr.widgets.filter_bar import FilterBar
     from gamr.widgets.split import HorizontalSplit
+    from gamr.widgets.toolbar import Toolbar
 
 _TREE_SETTING_NAMES = (
     "view_mode",
@@ -232,19 +232,19 @@ class AppState:
     def apply_to_widgets(
         self,
         tree: FileTreeTable,
-        filter_bar: FilterBar,
+        toolbar: Toolbar,
         split: HorizontalSplit,
     ) -> None:
         """Apply persisted widget settings through their public APIs."""
         for setting_name in _TREE_SETTING_NAMES:
             setattr(tree, setting_name, getattr(self, setting_name))
-        filter_bar.restore_state(set(self.active_filter_ids), self.search_query)
+        toolbar.restore_state(set(self.active_filter_ids), self.search_query)
         split.split_fraction = self.split_fraction
 
     def capture_from_widgets(
         self,
         tree: FileTreeTable,
-        filter_bar: FilterBar,
+        toolbar: Toolbar,
         split: HorizontalSplit,
         *,
         diff_mode: DiffMode,
@@ -257,5 +257,5 @@ class AppState:
         self.collapsed_dirs = tree.get_collapsed_dirs()
         self.split_fraction = split.split_fraction
         self.selected_path = str(selected_path) if selected_path else None
-        self.active_filter_ids = set(filter_bar.selected_filter_ids)
-        self.search_query = filter_bar.search_query
+        self.active_filter_ids = set(toolbar.selected_filter_ids)
+        self.search_query = toolbar.search_query

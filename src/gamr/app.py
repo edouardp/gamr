@@ -39,9 +39,9 @@ from gamr.services.filter import filter_by_status, fuzzy_filter
 from gamr.services.git_provider import DulwichGitProvider, NullGitProvider
 from gamr.state import AppState
 from gamr.widgets.file_tree_table import FileTreeTable
-from gamr.widgets.filter_bar import FilterBar
 from gamr.widgets.preview_pane import DiffOverview, PreviewPane
 from gamr.widgets.split import HorizontalSplit, SplitHandle
+from gamr.widgets.toolbar import Toolbar
 
 
 class GamrApp(App):
@@ -98,7 +98,7 @@ class GamrApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield FilterBar()
+        yield Toolbar()
         with HorizontalSplit(id="main"):
             yield FileTreeTable(id="left-pane")
             yield SplitHandle()
@@ -119,13 +119,13 @@ class GamrApp(App):
         # --- Restore widget state from persisted session ---
         tree = self.query_one(FileTreeTable)
         self._update_global_mtime_range(tree)
-        filter_bar = self.query_one(FilterBar)
+        toolbar = self.query_one(Toolbar)
         split = self.query_one(HorizontalSplit)
-        self._state.apply_to_widgets(tree, filter_bar, split)
+        self._state.apply_to_widgets(tree, toolbar, split)
         self.query_one(PreviewPane).query_one(DiffOverview).use_braille = self._state.use_braille
         self.query_one(PreviewPane).query_one(DiffOverview).use_quadrant = self._state.use_quadrant
         self.query_one(PreviewPane).query_one(DiffOverview).use_sextant = self._state.use_sextant
-        filtered = self._apply_filters(filter_bar.active_statuses, filter_bar.search_query)
+        filtered = self._apply_filters(toolbar.active_statuses, toolbar.search_query)
         tree.load_entries(
             filtered,
             self.target_path,
@@ -227,8 +227,8 @@ class GamrApp(App):
         """Rebuild the file index and reload the tree with current filters."""
         self._all_entries = self._file_index.build()
         self._update_global_mtime_range(tree)
-        filter_bar = self.query_one(FilterBar)
-        filtered = self._apply_filters(filter_bar.active_statuses, filter_bar.search_query)
+        toolbar = self.query_one(Toolbar)
+        filtered = self._apply_filters(toolbar.active_statuses, toolbar.search_query)
         tree.load_entries(filtered, self.target_path, collapsed_dirs=collapsed)
 
     def _refresh_preview_if_needed(self, changed_paths: list[Path] | None, git_changed: bool) -> None:
@@ -449,7 +449,7 @@ class GamrApp(App):
     # Filter logic
     # -------------------------------------------------------------------------
 
-    def on_filter_bar_filters_changed(self, event: FilterBar.FiltersChanged) -> None:
+    def on_toolbar_filters_changed(self, event: Toolbar.FiltersChanged) -> None:
         """Re-filter and reload tree when filter buttons or search text change."""
         # Debounce: cancel pending filter and schedule a new one
         if hasattr(self, "_filter_timer") and self._filter_timer:
@@ -492,11 +492,12 @@ class GamrApp(App):
     # -------------------------------------------------------------------------
 
     def action_focus_filter(self) -> None:
-        self.query_one("#search-input").focus()
+        self.query_one(Toolbar).show_search()
 
     def action_unfocus_filter(self) -> None:
         """Return focus to tree when escape pressed in search input."""
         if self.query_one("#search-input").has_focus:
+            self.query_one(Toolbar).hide_search()
             self.query_one(FileTreeTable).focus()
 
     def action_toggle_follow(self) -> None:
@@ -560,7 +561,7 @@ class GamrApp(App):
         self.query_one(FileTreeTable).action_cycle_view()
 
     def action_toggle_modified(self) -> None:
-        self.query_one(FilterBar).toggle_modified()
+        self.query_one(Toolbar).toggle_modified()
 
     def action_open_editor(self) -> None:
         """Open the previewed file in $EDITOR at the current scroll position."""
@@ -621,12 +622,12 @@ class GamrApp(App):
         """Capture all app state from live widgets and persist to disk."""
         tree = self.query_one(FileTreeTable)
         split = self.query_one(HorizontalSplit)
-        filter_bar = self.query_one(FilterBar)
+        toolbar = self.query_one(Toolbar)
         entry = tree.get_current_entry()
 
         self._state.capture_from_widgets(
             tree,
-            filter_bar,
+            toolbar,
             split,
             diff_mode=self._diff_mode,
             selected_path=entry.path if entry else None,

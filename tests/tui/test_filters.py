@@ -13,7 +13,7 @@ from pathlib import Path
 
 from gamr.app import GamrApp
 from gamr.widgets.file_tree_table import FileTreeTable
-from gamr.widgets.filter_bar import FilterBar
+from gamr.widgets.toolbar import Toolbar
 
 
 async def test_g_toggles_modified_filter(tree_repo: Path) -> None:
@@ -37,19 +37,19 @@ async def test_g_toggles_modified_filter(tree_repo: Path) -> None:
     async with app.run_test() as pilot:
         await pilot.pause()
         tree = app.query_one(FileTreeTable)
-        filter_bar = app.query_one(FilterBar)
+        toolbar = app.query_one(Toolbar)
 
         rows_all = tree.row_count
 
         await pilot.press("g")
         await pilot.pause(delay=0.2)  # wait for 150ms debounce
-        assert "modified" in filter_bar.selected_filter_ids
+        assert "modified" in toolbar.selected_filter_ids
         rows_filtered = tree.row_count
         assert rows_filtered < rows_all
 
         await pilot.press("g")
         await pilot.pause(delay=0.2)
-        assert "modified" not in filter_bar.selected_filter_ids
+        assert "modified" not in toolbar.selected_filter_ids
 
 
 async def test_ctrl_f_focuses_search_input(tree_repo: Path) -> None:

@@ -10,8 +10,8 @@ from gamr.models import GitStatus
 from gamr.services.file_scanner import FileScanner
 from gamr.state import AppState
 from gamr.widgets.file_tree_table import FileTreeTable
-from gamr.widgets.filter_bar import FilterBar
 from gamr.widgets.split import HorizontalSplit
+from gamr.widgets.toolbar import Toolbar
 
 
 async def test_app_mounts_on_git_repo(tmp_path: Path) -> None:
@@ -115,15 +115,15 @@ async def test_app_applies_and_captures_persistent_widget_state(tmp_path: Path, 
     async with app.run_test() as pilot:
         await pilot.pause()
         tree = app.query_one(FileTreeTable)
-        filter_bar = app.query_one(FilterBar)
+        toolbar = app.query_one(Toolbar)
         split = app.query_one(HorizontalSplit)
 
         assert not tree.show_size
-        assert filter_bar.selected_filter_ids == {"modified"}
+        assert toolbar.selected_filter_ids == {"modified"}
         assert split.split_fraction == 0.7
 
         tree.show_mtime = False
-        filter_bar.selected_filter_ids = {"modified"}
+        toolbar.selected_filter_ids = {"modified"}
         split.split_fraction = 0.6
         app._save_state()
 

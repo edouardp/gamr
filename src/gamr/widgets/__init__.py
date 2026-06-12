@@ -1,3 +1,3 @@
 """Gamr widgets."""
 
-__all__ = ["FileTreeTable", "FilterBar", "PreviewPane"]
+__all__ = ["FileTreeTable", "Toolbar", "PreviewPane"]

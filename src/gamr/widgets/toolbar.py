@@ -1,4 +1,4 @@
-"""FilterBar widget for git status filtering and fuzzy search."""
+"""Toolbar widget — shows logo when idle, search input when filtering."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ from textual.containers import Horizontal
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Input
+from textual.widgets import Input, Static
 
 from gamr.models import GitStatus
 from gamr.services.filter import statuses_for_filter_ids
 
 
-class FilterBar(Widget):
+class Toolbar(Widget):
     """Horizontal bar with search input and programmatic filter state."""
 
     class FiltersChanged(Message):
@@ -28,28 +28,56 @@ class FilterBar(Widget):
     search_query: reactive[str] = reactive("")
 
     DEFAULT_CSS = """
-    FilterBar {
+    Toolbar {
         height: 3;
         dock: top;
         layout: horizontal;
     }
-    FilterBar Horizontal {
+    Toolbar Horizontal {
         height: 3;
         width: 100%;
     }
-    FilterBar Input {
+    Toolbar Input {
         width: 1fr;
+    }
+    Toolbar .hidden {
+        display: none;
+    }
+    Toolbar #logo {
+        width: 1fr;
+        content-align: center middle;
+        color: $text-muted;
     }
     """
 
     def compose(self) -> ComposeResult:
         with Horizontal():
-            yield Input(placeholder="🔍 Filter files...", id="search-input")
+            yield Static(
+                " 🬖🬋🬏🬖🬋🬏🬱🬞🬓🬚🬋🬏 Git-aware\n ▌🬋🬓🬛🬋▌▌🬄▌🬛🬚🬀 Agentic coding assistant\n 🬈🬋🬀🬄 🬄🬄 🬄🬄🬁🬃 Monitor & Review",
+                id="logo",
+            )
+            yield Input(placeholder="🔍 Filter files...", id="search-input", classes="hidden")
 
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "search-input":
             self.search_query = event.value
             self.post_message(self.FiltersChanged(self.active_statuses, event.value))
+            # Show/hide logo based on whether there's a query
+            self.query_one("#logo").set_class(bool(event.value), "hidden")
+
+    def show_search(self) -> None:
+        """Show the search input and hide the logo."""
+        self.query_one("#logo").add_class("hidden")
+        inp = self.query_one("#search-input", Input)
+        inp.remove_class("hidden")
+        inp.focus()
+
+    def hide_search(self) -> None:
+        """Hide the search input and show the logo if query is empty."""
+        inp = self.query_one("#search-input", Input)
+        if not inp.value:
+            inp.add_class("hidden")
+            self.query_one("#logo").remove_class("hidden")
 
     @property
     def active_statuses(self) -> set[GitStatus]:

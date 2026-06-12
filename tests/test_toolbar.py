@@ -1,21 +1,21 @@
-"""Tests for FilterBar status groups."""
+"""Tests for Toolbar status groups."""
 
 from textual.app import App, ComposeResult
 
 from gamr.models import GitStatus
 from gamr.services.filter import filter_ids_for_statuses
-from gamr.widgets.filter_bar import FilterBar
+from gamr.widgets.toolbar import Toolbar
 
 
 class FilterApp(App):
     def compose(self) -> ComposeResult:
-        yield FilterBar()
+        yield Toolbar()
 
 
 async def test_staged_filter_includes_all_staged_statuses() -> None:
     app = FilterApp()
     async with app.run_test() as pilot:
-        bar = app.query_one(FilterBar)
+        bar = app.query_one(Toolbar)
 
         bar.selected_filter_ids = {"staged"}
         await pilot.pause()
@@ -30,7 +30,7 @@ async def test_staged_filter_includes_all_staged_statuses() -> None:
 async def test_added_filter_includes_staged_additions() -> None:
     app = FilterApp()
     async with app.run_test() as pilot:
-        bar = app.query_one(FilterBar)
+        bar = app.query_one(Toolbar)
 
         bar.selected_filter_ids = {"added"}
         await pilot.pause()
@@ -41,7 +41,7 @@ async def test_added_filter_includes_staged_additions() -> None:
 async def test_overlapping_filter_toggle_preserves_other_group() -> None:
     app = FilterApp()
     async with app.run_test() as pilot:
-        bar = app.query_one(FilterBar)
+        bar = app.query_one(Toolbar)
 
         bar.selected_filter_ids = {"staged", "added"}
         await pilot.pause()
@@ -60,7 +60,7 @@ async def test_overlapping_filter_toggle_preserves_other_group() -> None:
 async def test_toggle_modified() -> None:
     app = FilterApp()
     async with app.run_test() as pilot:
-        bar = app.query_one(FilterBar)
+        bar = app.query_one(Toolbar)
 
         bar.toggle_modified()
         await pilot.pause()

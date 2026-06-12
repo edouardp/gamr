@@ -44,3 +44,8 @@ class Preferences:
                 if styles:
                     prefs.overview_styles = styles
         return prefs
+
+
+#    🬖🬋🬏🬖🬋🬏🬱🬞🬓🬚🬋🬏 Git-aware
+#    ▌🬋🬓🬛🬋▌▌🬄▌🬛🬚🬀 Agentic coding assistant
+#    🬈🬋🬀🬄 🬄🬄 🬄🬄🬁🬃 Monitor & Review
