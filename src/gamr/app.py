@@ -206,6 +206,9 @@ class GamrApp(App):
         self.workers.cancel_group(self, "blame")
 
         self._rebuild_and_reload_tree(tree, collapsed)
+        # Restore cursor to the currently previewed file
+        if self._previewed_path:
+            tree.restore_cursor(self._previewed_path)
         if self._follow_mode and changed_paths:
             # Follow mode handles preview — skip normal refresh to avoid restoring old scroll
             pass
