@@ -296,12 +296,10 @@ class PreviewPane(Widget):
         self.query_one("#preview-scroll", VerticalScroll).scroll_up()
 
     def action_page_down(self) -> None:
-        scroller = self.query_one("#preview-scroll", VerticalScroll)
-        scroller.scroll_to(y=scroller.scroll_y + scroller.size.height - 4)
+        self.query_one("#preview-scroll", VerticalScroll).scroll_page_down()
 
     def action_page_up(self) -> None:
-        scroller = self.query_one("#preview-scroll", VerticalScroll)
-        scroller.scroll_to(y=max(0, scroller.scroll_y - scroller.size.height + 4))
+        self.query_one("#preview-scroll", VerticalScroll).scroll_page_up()
 
     def action_next_change(self) -> None:
         """Jump to the next change hunk not currently visible."""
