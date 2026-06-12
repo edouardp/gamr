@@ -62,12 +62,20 @@ class IconResolver:
         name = path.name
         # Exact name match first
         if name in self.name_icons:
-            return self.name_icons[name]
+            return self._pad(self.name_icons[name])
         # Extension match
         ext = path.suffix.lstrip(".")
         if ext and ext in self.ext_icons:
-            return self.ext_icons[ext]
+            return self._pad(self.ext_icons[ext])
         # Filetype fallback
         if is_dir:
-            return self.filetype_icons.get("dir", "📂")
-        return self.filetype_icons.get("file", "📄")
+            return self._pad(self.filetype_icons.get("dir", "📂"))
+        return self._pad(self.filetype_icons.get("file", "📄"))
+
+    @staticmethod
+    def _pad(icon: str) -> str:
+        """Prefix single-width icons with a space so text aligns."""
+        import unicodedata
+
+        width = sum(2 if unicodedata.east_asian_width(c) in ("W", "F") else 1 for c in icon)
+        return f" {icon}" if width == 1 else icon

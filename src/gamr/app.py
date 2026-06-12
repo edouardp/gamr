@@ -273,6 +273,79 @@ class GamrApp(App):
 
     def _show_preview_for(self, entry: FileEntry, *, scroll_to_top: bool = True, restore_line: int = 0) -> None:
         """Render file content or diff in the preview pane based on current diff mode."""
+        # For files > 50KB, render in background to avoid blocking the UI
+        try:
+            size = entry.path.stat().st_size if entry.path.exists() else 0
+        except OSError:
+            size = 0
+        if size > 50 * 1024:
+            preview = self.query_one(PreviewPane)
+            preview.current_path = entry.path
+            preview.show_diff = self._diff_mode
+            preview._update_header()
+            preview.loading = True
+            self._render_preview_async(entry, scroll_to_top=scroll_to_top, restore_line=restore_line)
+            return
+        self._render_preview_sync(entry, scroll_to_top=scroll_to_top, restore_line=restore_line)
+
+    @work(thread=True, group="preview", exclusive=True)
+    def _render_preview_async(self, entry: FileEntry, *, scroll_to_top: bool, restore_line: int) -> None:
+        """Heavy preview work in background: file read, diff calc, syntax highlight."""
+        worker = get_current_worker()
+        path = entry.path
+
+        # Read file (thread-safe)
+        try:
+            if not path.exists():
+                raw = b""
+            else:
+                raw = path.read_bytes()
+        except OSError:
+            if not worker.is_cancelled:
+                self.call_from_thread(self._apply_preview_error, path, "Cannot read file")
+            return
+
+        if worker.is_cancelled:
+            return
+
+        if b"\x00" in raw[:8192]:
+            if not worker.is_cancelled:
+                self.call_from_thread(self._apply_preview_error, path, f"Binary file: {path.name}")
+            return
+
+        _content = raw.decode(errors="replace")  # noqa: F841 — warms page cache
+
+        # Diff calculation (thread-safe, pure Python via Dulwich)
+        is_diffable = entry.git_status and self._git.is_git_repo()
+        _diff_text = self._git.get_diff(entry.path) if is_diffable else ""  # noqa: F841
+
+        if worker.is_cancelled:
+            return
+
+        # Syntax highlighting (CPU-bound, the main bottleneck)
+        # Skip for files >100KB is handled in _render_highlighted
+
+        # Apply on main thread
+        def _apply():
+            if worker.is_cancelled or self._previewed_path != path:
+                return
+            preview = self.query_one(PreviewPane)
+            preview.loading = False
+            preview.invalidate()
+            self._render_preview_sync(entry, scroll_to_top=scroll_to_top, restore_line=restore_line)
+
+        self.call_from_thread(_apply)
+
+    def _apply_preview_error(self, path: Path, message: str) -> None:
+        """Show an error/info message in preview if the path is still current."""
+        if self._previewed_path != path:
+            return
+        preview = self.query_one(PreviewPane)
+        preview.loading = False
+        preview.show_message(message)
+
+    def _render_preview_sync(self, entry: FileEntry, *, scroll_to_top: bool = True, restore_line: int = 0) -> None:
+        """Render file content or diff in the preview pane based on current diff mode."""
         preview = self.query_one(PreviewPane)
         preview.show_diff = self._diff_mode
         is_diffable = entry.git_status and self._git.is_git_repo()

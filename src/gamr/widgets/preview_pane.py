@@ -291,6 +291,23 @@ class PreviewPane(Widget):
         height: 100%;
         background: $surface;
     }
+    PreviewPane #preview-message {
+        width: auto;
+        height: auto;
+        padding: 1 3;
+        border: round $accent;
+        border-title-align: center;
+        border-title-color: $warning;
+        border-title-style: bold;
+        text-align: center;
+        color: $text-muted;
+    }
+    PreviewPane #preview-body.show-message {
+        align: center middle;
+    }
+    PreviewPane .hidden {
+        display: none;
+    }
     """
 
     def compose(self) -> ComposeResult:
@@ -299,6 +316,7 @@ class PreviewPane(Widget):
             with VerticalScroll(id="preview-scroll"):
                 yield _PreviewContent(id="preview-content")
             yield DiffOverview(id="diff-overview")
+            yield Static(id="preview-message", classes="hidden")
 
     def action_scroll_down(self) -> None:
         self.query_one("#preview-scroll", VerticalScroll).scroll_down()
@@ -366,8 +384,8 @@ class PreviewPane(Widget):
         mode = mode_labels.get(self.show_diff, "")
         header = self.query_one("#preview-header", PreviewHeader)
         if name:
-            # Right-align the mode by padding
-            header.update(f"{name}{'':>{60 - len(name) - len(mode)}}{mode}")
+            pad = max(1, 60 - len(name) - len(mode))
+            header.update(f"{name}{' ' * pad}{mode}")
         else:
             header.update("")
 
@@ -408,10 +426,13 @@ class PreviewPane(Widget):
         total_lines = len(content.splitlines())
         changed_lines, pure_added, has_deletion_after = compute_gutter_markers(diff_text, total_lines)
 
-        lexer = Syntax.guess_lexer(str(path), content)
-        syntax = Syntax(content, lexer=lexer, line_numbers=False, word_wrap=False, theme=self.syntax_theme)
-        highlighted = syntax.highlight(content)
-        hi_lines = highlighted.split(allow_blank=True)
+        if len(content) <= 100 * 1024:
+            lexer = Syntax.guess_lexer(str(path), content)
+            syntax = Syntax(content, lexer=lexer, line_numbers=False, word_wrap=False, theme=self.syntax_theme)
+            highlighted = syntax.highlight(content)
+            hi_lines = highlighted.split(allow_blank=True)
+        else:
+            hi_lines = [Text(line) for line in content.split("\n")]
 
         total_lines = len(hi_lines)
         ln_width = len(str(total_lines))
@@ -501,17 +522,40 @@ class PreviewPane(Widget):
         """Force next _set_content to re-render even for the same file."""
         self._last_rendered_path = None
 
+    def show_message(self, message: str, *, title: str = "Notice") -> None:
+        """Show a styled dialog message in the preview area."""
+        msg = self.query_one("#preview-message", Static)
+        body = self.query_one("#preview-body", Horizontal)
+        self.query_one("#preview-scroll", VerticalScroll).add_class("hidden")
+        self.query_one(DiffOverview).add_class("hidden")
+        msg.border_title = title
+        msg.update(message)
+        msg.remove_class("hidden")
+        body.add_class("show-message")
+        self._last_rendered_path = None
+
     def _read_file(self, path: Path) -> str | None:
         """Read file, handle errors and binary detection."""
         try:
+            size = path.stat().st_size
+        except OSError:
+            self.show_message("Cannot read file", title="⚠️ Error")
+            return None
+
+        # Skip very large files (>10MB)
+        if size > 10 * 1024 * 1024:
+            self.show_message(f"{path.name}\n\n{size // 1024 // 1024} MB", title="⚠️ File Too Large")
+            return None
+
+        try:
             raw = path.read_bytes()
         except OSError:
-            self._set_content("Cannot read file")
+            self.show_message("Cannot read file", title="⚠️ Error")
             return None
 
         # Null byte in first 8KB is a heuristic for binary files
         if b"\x00" in raw[:8192]:
-            self._set_content(Text(f"Binary file: {path.name}", style="dim italic"))
+            self.show_message(path.name, title="Binary File")
             return None
 
         return raw.decode(errors="replace")
@@ -526,11 +570,14 @@ class PreviewPane(Widget):
         trailing_removed = diff_data.trailing_removed
 
         # Syntax highlight the content. Deleted/empty files have no source rows.
-        if content:
+        # Skip syntax highlighting for large files (>100KB) to keep rendering fast.
+        if content and len(content) <= 100 * 1024:
             lexer = Syntax.guess_lexer(str(path), content)
             syntax = Syntax(content, lexer=lexer, line_numbers=False, word_wrap=False, theme=self.syntax_theme)
             highlighted = syntax.highlight(content)
             hi_lines = highlighted.split(allow_blank=True)
+        elif content:
+            hi_lines = [Text(line) for line in content.split("\n")]
         else:
             hi_lines = []
 
@@ -637,6 +684,10 @@ class PreviewPane(Widget):
         """
         if scroll_to_top and restore_line == 0 and self.current_path == self._last_rendered_path:
             return
+        # Hide message widget, show content widget
+        self.query_one("#preview-message", Static).add_class("hidden")
+        self.query_one("#preview-scroll", VerticalScroll).remove_class("hidden")
+        self.query_one("#preview-body", Horizontal).remove_class("show-message")
         self._rendered_content = content if isinstance(content, Text) else None
         # Precompute line start offsets for O(1) highlight lookups
         if isinstance(content, Text):
