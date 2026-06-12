@@ -26,13 +26,13 @@ class TestRenderLinesFullDiff:
     def test_all_clean_lines(self):
         result = self.overview._render_lines(10, 10, set(), set(), set())
         for row in range(10):
-            assert "│" in result.plain.splitlines()[row]
+            assert " " in result.plain.splitlines()[row]
             assert "dim" in _style_at(result, row)
 
     def test_added_line_is_green(self):
         result = self.overview._render_lines(5, 5, green={3}, red=set(), orange=set())
         assert "green" in _style_at(result, 2)  # line 3 → row 2
-        assert "┃" in result.plain.splitlines()[2]
+        assert "▐" in result.plain.splitlines()[2]
 
     def test_removed_line_is_red(self):
         result = self.overview._render_lines(5, 5, green=set(), red={2}, orange=set())
