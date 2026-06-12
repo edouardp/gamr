@@ -1,4 +1,10 @@
-"""Tests for diff mode cycling: d/D keys, scroll preservation."""
+"""Tests for diff mode cycling: d/D keys, scroll preservation.
+
+Fixture `tree_repo` provides src/alpha.py which is git-modified:
+    Original:  "a = 1\\n"
+    Current:   "a = 1\\nb = 2\\nc = 3\\n"
+This gives us a file with diff data to exercise all three modes.
+"""
 
 from pathlib import Path
 
@@ -8,6 +14,14 @@ from gamr.widgets.preview_pane import PreviewPane
 
 
 async def test_d_cycles_diff_mode_forward(tree_repo: Path) -> None:
+    """
+    Start state:  preview showing alpha.py in initial diff mode
+    Action:       press 'd'
+    Expected:     diff mode advances to next in cycle
+
+        Preview header shows: "alpha.py    full diff"
+        After 'd':            "alpha.py    gutter"  (or next in prefs)
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
@@ -22,6 +36,13 @@ async def test_d_cycles_diff_mode_forward(tree_repo: Path) -> None:
 
 
 async def test_D_cycles_diff_mode_backward(tree_repo: Path) -> None:
+    """
+    Start state:  preview in some diff mode
+    Actions:      'd' twice (advance), then 'D' once (go back)
+    Expected:     lands on the same mode as after first 'd'
+
+        Mode A  →d→  Mode B  →d→  Mode C  →D→  Mode B
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
@@ -29,7 +50,6 @@ async def test_D_cycles_diff_mode_backward(tree_repo: Path) -> None:
         tree.restore_cursor(tree_repo / "src" / "alpha.py")
         await pilot.pause()
 
-        # Cycle forward twice, then backward once
         await pilot.press("d")
         await pilot.pause()
         mode_after_d = app._diff_mode
@@ -41,7 +61,14 @@ async def test_D_cycles_diff_mode_backward(tree_repo: Path) -> None:
 
 
 async def test_diff_mode_cycles_through_preferences(tree_repo: Path) -> None:
-    """Diff mode should cycle through the modes defined in preferences."""
+    """
+    Start state:  any diff mode
+    Action:       press 'd' N times (where N = number of modes in preferences)
+    Expected:     cycles back to the starting mode
+
+        If prefs = [gutter, full]:
+        gutter →d→ full →d→ gutter  (back to start)
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
@@ -49,18 +76,26 @@ async def test_diff_mode_cycles_through_preferences(tree_repo: Path) -> None:
         tree.restore_cursor(tree_repo / "src" / "alpha.py")
         await pilot.pause()
 
-        modes_seen = [app._diff_mode]
+        start_mode = app._diff_mode
         for _ in range(len(app._prefs.diff_modes)):
             await pilot.press("d")
             await pilot.pause()
-            modes_seen.append(app._diff_mode)
 
-        # Should cycle back to original
-        assert modes_seen[-1] == modes_seen[0]
+        assert app._diff_mode == start_mode
 
 
 async def test_scroll_preserved_across_diff_mode_switch(tree_repo: Path) -> None:
-    """Switching diff modes should preserve scroll position by source line."""
+    """
+    Start state:  preview scrolled to source line X in one diff mode
+    Action:       cycle through all modes and back
+    Expected:     scroll position (by source line) is the same as before
+
+        Preview at line 1 → d → d → ... → d → still at line 1
+
+    This tests that the source line mapping correctly translates
+    between modes with different display row counts (full diff has
+    extra removed-line rows, unified only shows changes).
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
@@ -69,10 +104,8 @@ async def test_scroll_preserved_across_diff_mode_switch(tree_repo: Path) -> None
         tree.restore_cursor(tree_repo / "src" / "alpha.py")
         await pilot.pause()
 
-        # Get initial source line
         source_before = preview.get_source_line_at_scroll()
 
-        # Cycle through all modes and back
         for _ in range(len(app._prefs.diff_modes)):
             await pilot.press("d")
             await pilot.pause()

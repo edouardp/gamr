@@ -1,4 +1,13 @@
-"""Tests for filtering: g toggle, ctrl+f focus."""
+"""Tests for filtering: g toggle, ctrl+f focus, state preservation.
+
+Fixture `tree_repo` provides:
+    docs/readme.md       (clean)
+    src/alpha.py         (modified — has git diff)
+    src/beta.py          (clean)
+    main.py              (clean)
+
+Only src/alpha.py has GitStatus.MODIFIED.
+"""
 
 from pathlib import Path
 
@@ -8,6 +17,22 @@ from gamr.widgets.filter_bar import FilterBar
 
 
 async def test_g_toggles_modified_filter(tree_repo: Path) -> None:
+    """
+    Start state:  all files visible (no filter)
+    Action:       press 'g' (toggle modified filter ON)
+    Expected:     only modified file(s) + parent dirs visible; row count drops
+
+        Before 'g':              After 'g':
+        ▼ docs/                  ▼ src/
+          readme.md                alpha.py  ← only modified file
+        ▼ src/
+          alpha.py  (M)
+          beta.py
+        main.py
+
+    Action:       press 'g' again (toggle OFF)
+    Expected:     all files visible again
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
@@ -28,6 +53,15 @@ async def test_g_toggles_modified_filter(tree_repo: Path) -> None:
 
 
 async def test_ctrl_f_focuses_search_input(tree_repo: Path) -> None:
+    """
+    Start state:  tree has focus (default after launch)
+    Action:       press ctrl+f
+    Expected:     focus moves to the search input in the filter bar
+
+        ┌─ Filter Bar ─────────────────────┐
+        │ 🔍 Filter files...  ← focus here │
+        └──────────────────────────────────-┘
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
@@ -39,7 +73,22 @@ async def test_ctrl_f_focuses_search_input(tree_repo: Path) -> None:
 
 
 async def test_filter_preserves_collapsed_dirs(tree_repo: Path) -> None:
-    """Toggling git filter should not lose collapsed folder state."""
+    """
+    Start state:  docs/ is collapsed by user
+    Action:       toggle 'g' ON then OFF
+    Expected:     docs/ remains collapsed after round-trip
+
+    This verifies that the persistent _collapsed_dirs set survives
+    filtering, where dirs that disappear from the filtered view don't
+    lose their collapsed state.
+
+        Before:          Filter ON:         Filter OFF:
+        ▶ docs/          ▼ src/             ▶ docs/  ← still collapsed ✓
+        ▼ src/             alpha.py         ▼ src/
+          alpha.py (M)                        alpha.py
+          beta.py                             beta.py
+        main.py                             main.py
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()

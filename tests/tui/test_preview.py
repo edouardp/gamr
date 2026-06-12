@@ -1,4 +1,8 @@
-"""Tests for preview pane: tab focus, vim keys, hunk navigation, loading."""
+"""Tests for preview pane: tab focus, loading state, binary files, content.
+
+Fixture `tree_repo` provides src/alpha.py (modified) and main.py (clean).
+Other tests create specific files (large, binary) for edge cases.
+"""
 
 from pathlib import Path
 
@@ -11,6 +15,22 @@ from gamr.widgets.preview_pane import PreviewPane
 
 
 async def test_tab_switches_focus_to_preview(tree_repo: Path) -> None:
+    """
+    Start state:  tree pane has focus (default)
+    Action:       press tab
+    Expected:     preview pane gets focus
+
+    Action:       press tab again
+    Expected:     tree pane gets focus back
+
+        ┌── Tree ──┐  ┌── Preview ──┐
+        │ [focused] │  │             │    ← before tab
+        └───────────┘  └─────────────┘
+
+        ┌── Tree ──┐  ┌── Preview ──┐
+        │           │  │  [focused]  │    ← after tab
+        └───────────┘  └─────────────┘
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
@@ -28,27 +48,48 @@ async def test_tab_switches_focus_to_preview(tree_repo: Path) -> None:
 
 
 async def test_j_k_scroll_preview_when_focused(tree_repo: Path) -> None:
+    """
+    Start state:  file selected, preview showing content, tree has focus
+    Action:       tab to preview, then press 'j'
+    Expected:     preview pane is focused and ready for vim-style scrolling
+
+        Select alpha.py → preview shows file
+        Tab → preview focused
+        j/k now scroll the preview (not the tree)
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
         tree = app.query_one(FileTreeTable)
         preview = app.query_one(PreviewPane)
 
-        # Select a file with content
         tree.restore_cursor(tree_repo / "src" / "alpha.py")
         await pilot.pause()
 
-        # Focus preview
         await pilot.press("tab")
         await pilot.pause()
         assert preview.has_focus
 
 
 async def test_loading_clears_on_file_switch(tmp_path: Path) -> None:
-    """Loading indicator should clear when navigating to a small file."""
+    """
+    Start state:  large file selected → loading indicator shown
+    Action:       select a small file
+    Expected:     loading indicator clears, small file content displayed
+
+        Select large.txt (60KB):
+        ┌── Preview ────────────┐
+        │   ⏳ Loading...       │    ← loading overlay
+        └───────────────────────┘
+
+        Select small.txt:
+        ┌── Preview ────────────┐
+        │ 1  hello              │    ← content, no loading
+        └───────────────────────┘
+    """
     repo = Repo.init(str(tmp_path))
     large = tmp_path / "large.txt"
-    large.write_text("x\n" * 30000)  # ~60KB
+    large.write_text("x\n" * 30000)  # ~60KB, triggers async path
     small = tmp_path / "small.txt"
     small.write_text("hello\n")
     porcelain.add(repo, paths=["large.txt", "small.txt"])
@@ -71,7 +112,19 @@ async def test_loading_clears_on_file_switch(tmp_path: Path) -> None:
 
 
 async def test_binary_file_shows_message(tmp_path: Path) -> None:
-    """Binary files should show a message dialog, not crash."""
+    """
+    Start state:  binary file selected
+    Expected:     preview shows a centered message dialog (not a crash)
+
+        Select data.bin:
+        ┌── Preview ─────────────────────────┐
+        │                                    │
+        │    ╭── Binary File ──╮             │
+        │    │  data.bin       │             │
+        │    ╰─────────────────╯             │
+        │                                    │
+        └────────────────────────────────────┘
+    """
     repo = Repo.init(str(tmp_path))
     binary = tmp_path / "data.bin"
     binary.write_bytes(b"\x00\x01\x02\x03" * 100)
@@ -85,13 +138,20 @@ async def test_binary_file_shows_message(tmp_path: Path) -> None:
         tree.restore_cursor(binary)
         await pilot.pause()
 
-        # Message widget should be visible
         msg = app.query_one("#preview-message")
         assert "hidden" not in msg.classes
 
 
 async def test_preview_shows_file_content(tree_repo: Path) -> None:
-    """Selecting a file should show its content in the preview."""
+    """
+    Start state:  main.py selected (contains "print('hi')")
+    Expected:     preview content includes the file text
+
+        Select main.py:
+        ┌── Preview ──────────────┐
+        │ 1  print('hi')          │
+        └─────────────────────────┘
+    """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:
         await pilot.pause()
