@@ -29,9 +29,9 @@ class GamrCommands(Provider):
                 "Color-code modification times by recency",
             ),
             (
-                "Toggle diff overview style (line/braille)",
-                self._toggle_braille,
-                "Switch between line and braille overview bar",
+                "Cycle diff overview style (line/braille/sextant)",
+                self._cycle_overview_style,
+                "Cycle between line, braille, and sextant overview bar",
             ),
         ]
         for label, callback, help_text in commands:
@@ -47,6 +47,16 @@ class GamrCommands(Provider):
         tree = self.app.query_one(FileTreeTable)
         tree.gradient_colors = not tree.gradient_colors
 
-    def _toggle_braille(self) -> None:
+    def _cycle_overview_style(self) -> None:
         overview = self.app.query_one(DiffOverview)
-        overview.use_braille = not overview.use_braille
+        if overview.use_sextant:
+            # sextant → line
+            overview.use_sextant = False
+            overview.use_braille = False
+        elif overview.use_braille:
+            # braille → sextant
+            overview.use_braille = False
+            overview.use_sextant = True
+        else:
+            # line → braille
+            overview.use_braille = True

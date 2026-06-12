@@ -63,6 +63,7 @@ class DiffOverview(Static):
     """
 
     use_braille: reactive[bool] = reactive(False)
+    use_sextant: reactive[bool] = reactive(False)
 
     def set_diff_map(self, total_lines: int, added: set[int], removed: dict[int, list[str]]) -> None:
         """Build overview from full-diff data (added lines + removed context dict)."""
@@ -107,7 +108,9 @@ class DiffOverview(Static):
         if height < 2:
             height = 20
 
-        if self.use_braille:
+        if self.use_sextant:
+            result = self._render_sextant(total_lines, height, green, red, orange)
+        elif self.use_braille:
             result = self._render_braille(total_lines, height, green, red, orange)
         else:
             result = self._render_lines(total_lines, height, green, red, orange)
@@ -198,7 +201,50 @@ class DiffOverview(Static):
             result.append(char + "\n", style=self._classify_color(has_green, has_red, has_orange))
         return result
 
+    def _render_sextant(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
+        """Render using sextant characters (6 source lines per row via 2×3 grid).
+
+        Sextants (U+1FB00–U+1FB3B) divide a cell into a 2×3 grid.
+        We use the left column (3 vertical positions) × 2 = 6 lines per row.
+        Bit layout: row0_left=0, row0_right=1, row1_left=2, row1_right=3, row2_left=4, row2_right=5
+        """
+        # Sextant base is U+1FB00; bits map to positions in the 2×3 grid
+        # Bit positions: 0=top-left, 1=top-right, 2=mid-left, 3=mid-right, 4=bot-left, 5=bot-right
+        # Full block (all 6) is U+2588 (█) since U+1FB00 + 63 isn't defined that way
+        lines_per_slot = total_lines / (height * 6)
+        result = Text(no_wrap=True)
+
+        for row in range(height):
+            bits = 0
+            has_green = False
+            has_red = False
+            has_orange = False
+            for slot in range(6):
+                slot_start = int((row * 6 + slot) * lines_per_slot) + 1
+                slot_end = int((row * 6 + slot + 1) * lines_per_slot) + 1
+                slot_has = any(i in green or i in red or i in orange for i in range(slot_start, slot_end))
+                if slot_has:
+                    bits |= 1 << slot
+                    has_green = has_green or any(i in green for i in range(slot_start, slot_end))
+                    has_red = has_red or any(i in red for i in range(slot_start, slot_end))
+                    has_orange = has_orange or any(i in orange for i in range(slot_start, slot_end))
+
+            if bits == 0:
+                char = " "
+            elif bits == 63:
+                char = "\u2588"  # full block
+            else:
+                char = chr(0x1FB00 + bits - 1)
+
+            style = self._classify_color(has_green, has_red, has_orange)
+            result.append(char + "\n", style=style)
+
+        return result
+
     def watch_use_braille(self, value: bool) -> None:
+        self._render_overview()
+
+    def watch_use_sextant(self, value: bool) -> None:
         self._render_overview()
 
     def on_resize(self, event) -> None:
