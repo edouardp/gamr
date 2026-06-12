@@ -71,6 +71,7 @@ class GamrApp(App):
         Binding("6", "toggle_col('git_time')", "Git time col", show=False, priority=True),
         # Filters
         Binding("g", "toggle_modified", "Git modified", show=True, priority=True),
+        Binding("o", "cycle_overview", "Overview mode", show=True, priority=True),
         # App lifecycle
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
@@ -552,6 +553,20 @@ class GamrApp(App):
 
     def action_toggle_modified(self) -> None:
         self.query_one(FilterBar).toggle_modified()
+
+    def action_cycle_overview(self) -> None:
+        """Cycle diff overview style: line → quadrant → sextant → braille."""
+        overview = self.query_one(PreviewPane).query_one(DiffOverview)
+        if overview.use_braille:
+            overview.use_braille = False
+        elif overview.use_sextant:
+            overview.use_sextant = False
+            overview.use_braille = True
+        elif overview.use_quadrant:
+            overview.use_quadrant = False
+            overview.use_sextant = True
+        else:
+            overview.use_quadrant = True
 
     # -------------------------------------------------------------------------
     # State persistence
