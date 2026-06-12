@@ -63,7 +63,7 @@ class GamrApp(App):
         Binding("d", "toggle_diff", "Diff mode", show=True, priority=True),
         Binding("D", "toggle_diff_reverse", show=False, priority=True),
         # Columns
-        Binding("b", "toggle_blame", "Blame cols", show=True, priority=True),
+        Binding("b", "toggle_blame", "Blame cols", show=False, priority=True),
         Binding("1", "toggle_col('status')", "Status col", show=False, priority=True),
         Binding("2", "toggle_col('lines')", "Lines col", show=False, priority=True),
         Binding("3", "toggle_col('size')", "Size col", show=False, priority=True),
