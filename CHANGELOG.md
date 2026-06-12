@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.11 (2026-06-12)
+
+  - Toolbar with sextant logo (replaces plain search bar), swaps to search on `/`
+  - Escape in search returns focus to file tree and restores logo
+  - `/` replaces ctrl+f for search focus (vim-style)
+  - Tighter fuzzy matching: queries with `.` or `/` use exact substring match; threshold raised to 70
+  - `e` launches editor with `+set number +line +normal! zt` for vim/nvim
+  - Deleted files show "ℹ️ File Deleted" message instead of error
+  - Replaced tuple returns with `RenderResult` and `GutterMarkers` dataclasses
+  - Fixed private method access across class boundaries
+  - Renamed FilterBar → Toolbar throughout codebase
+
+
 ## 0.1.10 (2026-06-12)
 
   - Diff overview: bitmap-based rendering, contiguous changes always contiguous
