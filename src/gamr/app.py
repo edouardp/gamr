@@ -31,6 +31,7 @@ from textual.worker import get_current_worker
 from gamr.commands import GamrCommands
 from gamr.config import TIMESTAMP_REFRESH_INTERVAL, WATCHER_POLL_INTERVAL
 from gamr.models import DiffMode, FileEntry, GitStatus
+from gamr.preferences import Preferences
 from gamr.services.file_index import FileIndex
 from gamr.services.file_scanner import FileScanner
 from gamr.services.filter import filter_by_status, fuzzy_filter
@@ -38,7 +39,7 @@ from gamr.services.git_provider import DulwichGitProvider, NullGitProvider
 from gamr.state import AppState
 from gamr.widgets.file_tree_table import FileTreeTable
 from gamr.widgets.filter_bar import FilterBar
-from gamr.widgets.preview_pane import PreviewPane
+from gamr.widgets.preview_pane import DiffOverview, PreviewPane
 from gamr.widgets.split import HorizontalSplit, SplitHandle
 
 
@@ -82,6 +83,7 @@ class GamrApp(App):
         super().__init__(**kwargs)
         self.target_path = (path or Path.cwd()).resolve()
         self._all_entries: list[FileEntry] = []
+        self._prefs = Preferences.load()
         # Load persisted state from ~/.config/gamr/state.json
         self._state = AppState.load(self.target_path)
         self._diff_mode: DiffMode = self._state.diff_mode
@@ -116,6 +118,7 @@ class GamrApp(App):
         filter_bar = self.query_one(FilterBar)
         split = self.query_one(HorizontalSplit)
         self._state.apply_to_widgets(tree, filter_bar, split)
+        self.query_one(PreviewPane).query_one(DiffOverview).use_braille = self._state.use_braille
         filtered = self._apply_filters(filter_bar.active_statuses, filter_bar.search_query)
         tree.load_entries(
             filtered,
@@ -420,9 +423,12 @@ class GamrApp(App):
 
     def _cycle_diff_mode(self, direction: int) -> None:
         """Cycle through diff modes, preserving scroll position by source line."""
-        modes = list(DiffMode)
+        modes = self._prefs.diff_modes
         old_mode = self._diff_mode
-        idx = modes.index(old_mode)
+        try:
+            idx = modes.index(old_mode)
+        except ValueError:
+            idx = 0
         self._diff_mode = modes[(idx + direction) % len(modes)]
         tree = self.query_one(FileTreeTable)
         entry = tree.get_current_entry()
@@ -485,6 +491,7 @@ class GamrApp(App):
             diff_mode=self._diff_mode,
             selected_path=entry.path if entry else None,
         )
+        self._state.use_braille = self.query_one(PreviewPane).query_one(DiffOverview).use_braille
         self._state.save()
 
     def action_quit(self) -> None:

@@ -60,6 +60,7 @@ class AppState:
     show_git_time: bool = False
     spaced_paths: bool = True
     gradient_colors: bool = True
+    use_braille: bool = False
     collapsed_dirs: set[str] = field(default_factory=set)
     split_fraction: float = 0.5
     selected_path: str | None = None
@@ -118,6 +119,7 @@ class AppState:
             "show_git_time": self.show_git_time,
             "spaced_paths": self.spaced_paths,
             "gradient_colors": self.gradient_colors,
+            "use_braille": self.use_braille,
             "collapsed_dirs": sorted(self.collapsed_dirs),
             "split_fraction": self.split_fraction,
             "selected_path": self.selected_path,
@@ -166,6 +168,7 @@ class AppState:
             show_git_time = _read_bool(data, "show_git_time", False)
             spaced_paths = _read_bool(data, "spaced_paths", True)
             gradient_colors = _read_bool(data, "gradient_colors", True)
+            use_braille = _read_bool(data, "use_braille", False)
         except (TypeError, ValueError):
             return None
 
@@ -181,6 +184,7 @@ class AppState:
             show_git_time=show_git_time,
             spaced_paths=spaced_paths,
             gradient_colors=gradient_colors,
+            use_braille=use_braille,
             collapsed_dirs=collapsed_dirs,
             split_fraction=max(0.1, min(0.9, split_fraction)),
             selected_path=selected_path,
