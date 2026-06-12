@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 (2026-06-12)
+
+  - Smooth scrolling for page up/down/space in preview pane
+  - Fixed scroll position lost when cycling through diff modes via unified diff
+  - Fixed scroll position read during in-flight animation giving wrong results
+
+
 ## 0.1.5 (2026-06-11)
 
   - Added vim-style keybindings: `j`/`k` to navigate file tree and scroll preview
