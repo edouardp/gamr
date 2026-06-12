@@ -192,7 +192,7 @@ class DiffOverview(Static):
 
     @staticmethod
     def _char_line(slots: list[bool]) -> str:
-        return "┃" if slots[0] else "│"
+        return "▐" if slots[0] else " "
 
     @staticmethod
     def _char_quadrant(slots: list[bool]) -> str:
