@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.12 (2026-06-12)
+
+  - New "Lines" column: shows line count for text files, file size (grey) for binary
+  - Column toggle keys renumbered: 1=Status, 2=+/-, 3=Size, 4=Lines, 5=Modified, 6=Author, 7=Git Time
+  - Bulk blame: single log walk with tree diffing (120x faster on large repos)
+  - Blame cache persists across file index rebuilds; only changed files re-blamed
+  - Blame worker starts on mount if columns are visible (was only on toggle)
+  - Blame worker no longer cancelled by non-git file changes
+  - Git Time column now uses gradient colors (separate range from Modified)
+  - `O` opens file in default macOS app (no-op on other platforms)
+  - Fixed scroll position jumping on file watcher updates and blame refreshes
+  - Fixed toolbar not showing search input when restoring saved filter query
+  - Enter in search input returns focus to tree (same as Escape)
+  - Hidden blame toggle (`b`) from footer
+  - ADR-028: bulk blame via tree diffing
+
+
 ## 0.1.11 (2026-06-12)
 
   - Toolbar with sextant logo (replaces plain search bar), swaps to search on `/`
