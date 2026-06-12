@@ -648,7 +648,7 @@ class FileTreeTable(DataTable):
                 name_style = "strike dim red"
             if show_path:
                 try:
-                    rel = str(node.path.relative_to(self._root_path))
+                    rel = node.path.relative_to(self._root_path).as_posix()
                 except ValueError:
                     rel = node.path.name
                 if self.spaced_paths:

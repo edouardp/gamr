@@ -150,7 +150,8 @@ class AppState:
             return None
 
         resolved_target = target_path.resolve()
-        if data.get("target") != str(resolved_target):
+        saved_target = data.get("target", "")
+        if Path(saved_target).resolve() != resolved_target:
             return None
 
         try:

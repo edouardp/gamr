@@ -80,8 +80,11 @@ class FileScanner:
             self._observer.start()
         except Exception:
             # watchdog may fail on some filesystems (network mounts, etc.)
-            self._polling = True
-            self._poll_snapshot = self._build_snapshot()
+            pass
+        # Always enable polling as supplemental — native watchers may silently
+        # miss events on BSD (kqueue) or Linux (inotify watch limits)
+        self._polling = True
+        self._poll_snapshot = self._build_snapshot()
 
     def stop(self) -> None:
         """Stop watching."""
@@ -126,7 +129,7 @@ class FileScanner:
         return snap
 
     def _is_ignored(self, path: Path) -> bool:
-        rel = str(path.relative_to(self.root))
+        rel = path.relative_to(self.root).as_posix()
         name = path.name
         # Two-layer filtering: hardcoded patterns (fast, always present) then .gitignore rules
         for pattern in self.ignore_patterns:

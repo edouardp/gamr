@@ -65,7 +65,7 @@ class FileIndex:
             data = path.read_bytes()[:8192]
             if b"\x00" in data:
                 return None
-            return path.read_text(errors="replace").count("\n")
+            return path.read_text(encoding="utf-8", errors="replace").count("\n")
         except OSError:
             return None
 

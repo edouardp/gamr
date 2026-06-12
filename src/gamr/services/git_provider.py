@@ -116,7 +116,7 @@ class DulwichGitProvider(GitProvider):
         if not self._repo:
             return ""
 
-        rel = os.fsencode(str(path.relative_to(self.repo_root)))
+        rel = path.relative_to(self.repo_root).as_posix().encode()
         try:
             # Resolve HEAD commit's tree to get the old version of the file
             head = self._repo[self._repo.head()]
@@ -155,7 +155,7 @@ class DulwichGitProvider(GitProvider):
         if not self._repo:
             return None
 
-        rel = str(path.relative_to(self.repo_root))
+        rel = path.relative_to(self.repo_root).as_posix()
         try:
             # Walk commits touching this file; max_entries=1 gets the most recent
             for entry in self._repo.get_walker(paths=[rel.encode()], max_entries=1):
