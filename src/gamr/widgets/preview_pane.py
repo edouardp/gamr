@@ -78,6 +78,18 @@ class DiffOverview(Static):
         self._orange: set[int] = set()
         self._render_overview()
 
+    def set_display_row_map(self, total_rows: int, green: set[int], red: set[int]) -> None:
+        """Build overview from display-row-level data (used by full diff mode)."""
+        if total_rows == 0:
+            self.update("")
+            return
+
+        self._total_lines = total_rows
+        self._green = green
+        self._red = red
+        self._orange: set[int] = set()
+        self._render_overview()
+
     def set_gutter_map(
         self, total_lines: int, changed: set[int], pure_added: set[int], has_deletion_after: set[int]
     ) -> None:
@@ -437,7 +449,7 @@ class PreviewPane(Widget):
         """Scroll so source_line is visible with context lines above it."""
         self.scroll_to_source_line(max(1, source_line - context))
 
-    def _update_header(self) -> None:
+    def update_header(self) -> None:
         """Update the header with current filename and diff mode."""
         name = self.current_path.name if self.current_path else ""
         mode_labels = {
@@ -481,11 +493,7 @@ class PreviewPane(Widget):
         total_display_rows = len(self._row_to_source)
         overview = self.query_one(DiffOverview)
         if total_display_rows > 0 and (display_green or display_red):
-            overview._total_lines = total_display_rows
-            overview._green = display_green
-            overview._red = display_red
-            overview._orange = set()
-            overview._render_overview()
+            overview.set_display_row_map(total_display_rows, display_green, display_red)
             overview.display = True
         else:
             overview.clear_overview()
@@ -776,7 +784,7 @@ class PreviewPane(Widget):
             self._line_offsets = None
         static = self.query_one("#preview-content", Static)
         static.update(content)
-        self._update_header()
+        self.update_header()
         self._last_rendered_path = self.current_path
         scroller = self.query_one("#preview-scroll", VerticalScroll)
         if restore_line > 1:

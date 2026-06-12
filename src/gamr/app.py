@@ -301,7 +301,7 @@ class GamrApp(App):
             preview = self.query_one(PreviewPane)
             preview.current_path = entry.path
             preview.show_diff = self._diff_mode
-            preview._update_header()
+            preview.update_header()
             preview.loading = True
             self._render_preview_async(entry, scroll_to_top=scroll_to_top, restore_line=restore_line)
             return
