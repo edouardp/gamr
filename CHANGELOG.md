@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.8 (2026-06-12)
+
+  - Async preview rendering for files >50KB (loading indicator, cancellable)
+  - Skip syntax highlighting for files >100KB, reject files >10MB
+  - Centered dialog message for binary/large/unreadable files
+  - Long filenames no longer crash the preview header
+  - Respect `$XDG_CONFIG_HOME` and `$XDG_STATE_HOME` per XDG spec
+  - State files moved to `$XDG_STATE_HOME/gamr/` (legacy path still read)
+  - Single-width file icons padded for alignment
+  - Fixed follow mode not scrolling to first change hunk
+  - Refactored: deduplicated preview rendering, extracted helpers, cleaner SRP
+
+
 ## 0.1.7 (2026-06-12)
 
   - Added `~/.config/gamr/preferences.toml` for user defaults
