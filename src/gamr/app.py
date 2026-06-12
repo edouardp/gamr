@@ -555,10 +555,15 @@ class GamrApp(App):
         self.query_one(FilterBar).toggle_modified()
 
     def action_cycle_overview(self) -> None:
-        """Cycle diff overview style: line → quadrant → sextant → braille."""
+        """Cycle diff overview style: line → quadrant → sextant → braille → off."""
         overview = self.query_one(PreviewPane).query_one(DiffOverview)
-        if overview.use_braille:
+        if not overview.display:
+            # off → line
+            overview.display = True
+        elif overview.use_braille:
+            # braille → off
             overview.use_braille = False
+            overview.display = False
         elif overview.use_sextant:
             overview.use_sextant = False
             overview.use_braille = True
