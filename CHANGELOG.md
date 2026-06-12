@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.9 (2026-06-12)
+
+  - Fixed PyPI package missing long description (README now included in build)
+
+
 ## 0.1.8 (2026-06-12)
 
   - Async preview rendering for files >50KB (loading indicator, cancellable)
