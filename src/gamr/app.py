@@ -571,11 +571,14 @@ class GamrApp(App):
         editor = os.environ.get("VISUAL", os.environ.get("EDITOR", "vim"))
         preview = self.query_one(PreviewPane)
         line = preview.get_source_line_at_scroll()
-        # Build command — vim/nvim/vi support +line syntax
+        # Build command — vim/nvim/vi get line numbers and scroll position
         cmd = [editor]
         editor_name = Path(editor).name
-        if editor_name in ("vim", "nvim", "vi") and line > 1:
-            cmd.append(f"+{line}")
+        if editor_name in ("vim", "nvim", "vi"):
+            cmd.append("+set number")
+            if line > 1:
+                cmd.append(f"+{line}")
+                cmd.append("+normal! zt")
         cmd.append(str(self._previewed_path))
 
         with self.suspend():
