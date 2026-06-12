@@ -1,6 +1,6 @@
 [project]
 name = "gamr"
-version = "0.1.7"
+version = "0.1.8"
 description = "Git-aware Agent Monitor & Review — a TUI for reviewing AI agent work"
 requires-python = ">=3.11"
 license = "MIT"

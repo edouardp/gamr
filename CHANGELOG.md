@@ -12,7 +12,6 @@
   - Fixed follow mode not scrolling to first change hunk
   - Refactored: deduplicated preview rendering, extracted helpers, cleaner SRP
 
-
 ## 0.1.7 (2026-06-12)
 
   - Added `~/.config/gamr/preferences.toml` for user defaults
