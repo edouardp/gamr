@@ -23,6 +23,7 @@
 - **Resizable split pane** — drag the divider between tree and preview
 - **Desktop-style navigation** — ←/→ to collapse/expand folders, ← on file collapses parent
 - **State persistence** — view mode, columns, collapsed dirs, selection, filters saved between sessions
+- **Preferences file** — `~/.config/gamr/preferences.toml` for user defaults (e.g., diff mode cycle)
 - **Graceful degradation** — works on non-git directories (hides git UI)
 
 ## Install
@@ -67,6 +68,7 @@ src/gamr/
 ├── commands.py         # Command palette provider
 ├── models.py           # FileEntry, GitStatus, DiffMode, etc.
 ├── state.py            # Persistent state management
+├── preferences.py      # User preferences (~/.config/gamr/preferences.toml)
 ├── gamr.tcss          # Stylesheet
 ├── services/
 │   ├── diff_parser.py  # Unified diff parsing into DiffData

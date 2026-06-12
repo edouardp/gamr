@@ -130,9 +130,16 @@
 
 ## State Persistence
 
-- Saved to `~/.config/gamr/state.json` on quit
+- Saved to `~/.config/gamr/state/<hash>.json` on quit
 - Restored on next launch if target directory matches
-- Persisted state: view mode, diff mode, column toggles, spaced paths, gradient, collapsed directories, split position, selected file, selected filter IDs, search query
+- Persisted state: view mode, diff mode, column toggles, spaced paths, gradient, braille overview, collapsed directories, split position, selected file, modified filter, search query
+
+## Preferences
+
+- Loaded from `~/.config/gamr/preferences.toml` on launch
+- Not modified by the app — user-edited only
+- Available settings:
+  - `[preview] diff_modes` — list of diff modes to cycle through with `d` (options: `"full"`, `"gutter"`, `"unified"`, default: all three)
 
 ## Resizable Split
 

@@ -27,3 +27,4 @@
 | [023](023-copy-file-reference.md) | Copy file reference from preview pane |
 | [024](024-single-git-modified-filter.md) | Single `g` keybinding for git modified filter |
 | [025](025-vim-keybindings-preview-focus.md) | Vim-style keybindings and preview pane focus |
+| [026](026-user-preferences-file.md) | User preferences file (`~/.config/gamr/preferences.toml`) |
