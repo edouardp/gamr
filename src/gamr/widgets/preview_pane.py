@@ -603,6 +603,9 @@ class PreviewPane(Widget):
 
     def _read_file(self, path: Path) -> str | None:
         """Read file, handle errors and binary detection."""
+        if not path.exists():
+            self.show_message(path.name, title="ℹ️ File Deleted")
+            return None
         try:
             size = path.stat().st_size
         except OSError:
