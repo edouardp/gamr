@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7 (2026-06-12)
+
+  - Added `~/.config/gamr/preferences.toml` for user defaults
+  - `[preview] diff_modes` controls which modes `d` cycles through
+  - Braille/line overview mode now persisted between sessions
+  - Fixed braille diff overview not filling the bar for shorter files
+
+
 ## 0.1.6 (2026-06-12)
 
   - Smooth scrolling for page up/down/space in preview pane
