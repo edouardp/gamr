@@ -10,7 +10,6 @@
   - Line counting uses explicit UTF-8 encoding (avoids Windows locale issues)
   - File watcher always polls alongside native backend (fixes silent event loss on BSD/Linux)
 
-
 ## 0.1.12 (2026-06-12)
 
   - New "Lines" column: shows line count for text files, file size (grey) for binary
