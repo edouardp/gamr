@@ -6,7 +6,6 @@
   - Fixed scroll position lost when cycling through diff modes via unified diff
   - Fixed scroll position read during in-flight animation giving wrong results
 
-
 ## 0.1.5 (2026-06-11)
 
   - Added vim-style keybindings: `j`/`k` to navigate file tree and scroll preview
