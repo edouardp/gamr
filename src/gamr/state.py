@@ -31,6 +31,7 @@ _TREE_SETTING_NAMES = (
     "show_status",
     "show_lines",
     "show_size",
+    "show_rows",
     "show_mtime",
     "show_author",
     "show_git_time",
@@ -57,6 +58,7 @@ class AppState:
     show_status: bool = True
     show_lines: bool = True
     show_size: bool = True
+    show_rows: bool = True
     show_mtime: bool = True
     show_author: bool = False
     show_git_time: bool = False
@@ -125,6 +127,7 @@ class AppState:
             "show_status": self.show_status,
             "show_lines": self.show_lines,
             "show_size": self.show_size,
+            "show_rows": self.show_rows,
             "show_mtime": self.show_mtime,
             "show_author": self.show_author,
             "show_git_time": self.show_git_time,
@@ -176,6 +179,7 @@ class AppState:
             show_status = _read_bool(data, "show_status", True)
             show_lines = _read_bool(data, "show_lines", True)
             show_size = _read_bool(data, "show_size", True)
+            show_rows = _read_bool(data, "show_rows", True)
             show_mtime = _read_bool(data, "show_mtime", True)
             show_author = _read_bool(data, "show_author", False)
             show_git_time = _read_bool(data, "show_git_time", False)
@@ -194,6 +198,7 @@ class AppState:
             show_status=show_status,
             show_lines=show_lines,
             show_size=show_size,
+            show_rows=show_rows,
             show_mtime=show_mtime,
             show_author=show_author,
             show_git_time=show_git_time,

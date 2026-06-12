@@ -53,6 +53,7 @@ class FileEntry:
     lines_removed: int | None = None
     last_author: str | None = None
     last_git_modified: int | None = None  # unix timestamp
+    row_count: int | None = None  # line count for text files, None for binary
 
     @property
     def name(self) -> str:

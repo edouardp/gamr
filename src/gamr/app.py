@@ -67,13 +67,15 @@ class GamrApp(App):
         Binding("1", "toggle_col('status')", "Status col", show=False, priority=True),
         Binding("2", "toggle_col('lines')", "Lines col", show=False, priority=True),
         Binding("3", "toggle_col('size')", "Size col", show=False, priority=True),
-        Binding("4", "toggle_col('mtime')", "Mtime col", show=False, priority=True),
-        Binding("5", "toggle_col('author')", "Author col", show=False, priority=True),
-        Binding("6", "toggle_col('git_time')", "Git time col", show=False, priority=True),
+        Binding("4", "toggle_col('rows')", "Lines col", show=False, priority=True),
+        Binding("5", "toggle_col('mtime')", "Mtime col", show=False, priority=True),
+        Binding("6", "toggle_col('author')", "Author col", show=False, priority=True),
+        Binding("7", "toggle_col('git_time')", "Git time col", show=False, priority=True),
         # Filters
         Binding("g", "toggle_modified", "Git modified", show=True, priority=True),
         Binding("o", "cycle_overview", "Overview mode", show=True, priority=True),
         Binding("e", "open_editor", "Editor", show=True, priority=True),
+        Binding("O", "open_macos", show=False, priority=True),
         Binding("escape", "unfocus_filter", show=False, priority=True),
         # App lifecycle
         Binding("q", "quit", "Quit", show=True, priority=True),
@@ -144,6 +146,8 @@ class GamrApp(App):
             tree.show_lines = False
         else:
             self._load_diff_stats()
+            if tree.show_author or tree.show_git_time:
+                self._load_blame_data()
 
         tree.focus()
         self.set_interval(TIMESTAMP_REFRESH_INTERVAL, self._refresh_timestamps)
@@ -209,7 +213,15 @@ class GamrApp(App):
 
         # Cancel background workers that reference old entries before rebuilding
         self.workers.cancel_group(self, "diff_stats")
-        self.workers.cancel_group(self, "blame")
+        if git_changed:
+            self.workers.cancel_group(self, "blame")
+            # Invalidate blame cache for changed files so they get re-blamed
+            if changed_paths:
+                for path in changed_paths:
+                    self._file_index._blame_cache.pop(path, None)
+            else:
+                # Full git state change (e.g. branch switch) — clear all
+                self._file_index._blame_cache.clear()
 
         self._rebuild_and_reload_tree(tree, collapsed)
         # Restore cursor to the currently previewed file
@@ -414,14 +426,27 @@ class GamrApp(App):
 
     @work(thread=True, group="blame")
     def _load_blame_data(self) -> None:
-        """Populate last_author and last_git_modified for all entries (expensive)."""
+        """Populate last_author and last_git_modified for entries missing blame."""
         worker = get_current_worker()
-        for path, _entry in list(self._file_index.entries.items()):
-            if worker.is_cancelled:
-                return
-            self._file_index.update_blame(path)
-        if not worker.is_cancelled:
-            self.call_from_thread(self._refresh_tree_labels)
+        # Collect files that need blame
+        paths_needed = [path for path, entry in self._file_index.entries.items() if entry.last_author is None]
+        if not paths_needed:
+            return
+
+        # Bulk walk: single log traversal for all files
+        results = self._git.get_bulk_blame(paths_needed)
+        if worker.is_cancelled:
+            return
+
+        # Apply results to entries and cache
+        for path, info in results.items():
+            entry = self._file_index.entries.get(path)
+            if entry:
+                entry.last_author = info.last_author
+                entry.last_git_modified = info.last_modified
+                self._file_index._blame_cache[path] = info
+
+        self.call_from_thread(self._refresh_tree_labels)
 
     @work(thread=True, group="diff_stats")
     def _load_diff_stats(self) -> None:
@@ -436,8 +461,8 @@ class GamrApp(App):
             self.call_from_thread(self._refresh_tree_labels)
 
     def _refresh_tree_labels(self) -> None:
-        """Refresh tree data after a background worker completes."""
-        self.query_one(FileTreeTable).refresh_data()
+        """Refresh tree cell content after a background worker completes."""
+        self.query_one(FileTreeTable).refresh_cells()
 
     def _refresh_timestamps(self) -> None:
         """Called every 10s to update relative time displays in-place."""
@@ -550,6 +575,8 @@ class GamrApp(App):
         attr = f"show_{col}"
         if hasattr(tree, attr):
             setattr(tree, attr, not getattr(tree, attr))
+            if col in ("author", "git_time") and getattr(tree, attr) and self._git.is_git_repo():
+                self._load_blame_data()
 
     def action_switch_pane(self) -> None:
         """Move focus between the file tree and the preview pane."""
@@ -584,6 +611,17 @@ class GamrApp(App):
 
         with self.suspend():
             subprocess.run(cmd)  # nosec B603
+
+    def action_open_macos(self) -> None:
+        """Open the selected file with macOS 'open' command."""
+        import subprocess  # nosec B404
+        import sys
+
+        if sys.platform != "darwin":
+            return
+        if not self._previewed_path or not self._previewed_path.exists():
+            return
+        subprocess.Popen(["open", str(self._previewed_path)])  # nosec B603 B607
 
     def action_cycle_overview(self) -> None:
         """Cycle diff overview style through preferences.overview_styles."""

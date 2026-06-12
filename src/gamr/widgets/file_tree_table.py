@@ -125,6 +125,7 @@ class FileTreeTable(DataTable):
     show_status = reactive(True)
     show_lines = reactive(True)
     show_size = reactive(True)
+    show_rows = reactive(True)
     show_mtime = reactive(True)
     show_author = reactive(False)
     show_git_time = reactive(False)
@@ -150,6 +151,7 @@ class FileTreeTable(DataTable):
         self._size_range: tuple[float, float] = (0, 0)
         self._mtime_range: tuple[float, float] = (0, 0)
         self._global_mtime_range: tuple[float, float] = (0, 0)
+        self._git_time_range: tuple[float, float] = (0, 0)
         self._icons = IconResolver()
         self._sort_column: str | None = None
         self._sort_direction: str = "none"  # "asc", "desc", or "none"
@@ -229,6 +231,16 @@ class FileTreeTable(DataTable):
         selected_path = entry.path if entry else None
         self._rebuild_table()
         self.restore_cursor(selected_path)
+
+    def refresh_cells(self) -> None:
+        """Update all cell content in-place without rebuilding rows (no scroll change)."""
+        if not self._row_to_node:
+            return
+        self._compute_ranges()
+        flat = self.view_mode != ViewMode.TREE
+        show_path = self.view_mode == ViewMode.FLAT_PATH
+        for key, node in self._row_to_node.items():
+            self._update_row_cells(key, node, flat, show_path)
 
     def refresh_time_cells(self) -> None:
         """Update only the mtime/git_time cells in-place (no rebuild)."""
@@ -372,6 +384,9 @@ class FileTreeTable(DataTable):
     def watch_show_size(self, value: bool) -> None:
         self._on_column_changed()
 
+    def watch_show_rows(self, value: bool) -> None:
+        self._on_column_changed()
+
     def watch_show_mtime(self, value: bool) -> None:
         self._on_column_changed()
 
@@ -428,7 +443,9 @@ class FileTreeTable(DataTable):
         if old_keys == new_keys:
             self._update_existing_rows(new_rows)
         else:
+            saved_scroll_y = self.scroll_y
             self._replace_rows(new_rows, old_keys, set(new_keys))
+            self.scroll_y = saved_scroll_y
 
         self._fit_name_column()
 
@@ -436,6 +453,7 @@ class FileTreeTable(DataTable):
         """Full clear and rebuild (used when columns change)."""
         from gamr.widgets.tree_data import visible_rows
 
+        saved_scroll_y = self.scroll_y
         self._row_to_node.clear()
         self._compute_ranges()
         new_rows = visible_rows(
@@ -449,6 +467,7 @@ class FileTreeTable(DataTable):
         for node in new_rows:
             self._insert_row(node, flat, show_path)
         self._fit_name_column()
+        self.scroll_y = saved_scroll_y
 
     def _update_existing_rows(self, new_rows: list) -> None:
         """Update cells in-place when row set and order are unchanged."""
@@ -502,6 +521,8 @@ class FileTreeTable(DataTable):
             cells.append(self._render_lines_cell(entry))
         if self.show_size:
             cells.append(self._render_size_cell(entry))
+        if self.show_rows:
+            cells.append(self._render_rows_cell(entry))
         if self.show_mtime:
             cells.append(self._render_mtime_cell(entry))
         if self.show_author:
@@ -522,6 +543,8 @@ class FileTreeTable(DataTable):
             self.update_cell(key, "lines", self._render_lines_cell(entry))
         if self.show_size:
             self.update_cell(key, "size", self._render_size_cell(entry))
+        if self.show_rows:
+            self.update_cell(key, "rows", self._render_rows_cell(entry))
         if self.show_mtime:
             self.update_cell(key, "mtime", self._render_mtime_cell(entry))
         if self.show_author:
@@ -538,6 +561,8 @@ class FileTreeTable(DataTable):
             needed.append("lines")
         if self.show_size:
             needed.append("size")
+        if self.show_rows:
+            needed.append("rows")
         if self.show_mtime:
             needed.append("mtime")
         if self.show_author:
@@ -558,6 +583,8 @@ class FileTreeTable(DataTable):
             self.add_column(self._col_label("+/-", "lines"), key="lines", width=10)
         if self.show_size:
             self.add_column(self._col_label("Size", "size"), key="size", width=7)
+        if self.show_rows:
+            self.add_column(self._col_label("Lines", "rows"), key="rows", width=7)
         if self.show_mtime:
             self.add_column(self._col_label("Modified", "mtime"), key="mtime", width=10)
         if self.show_author:
@@ -581,6 +608,7 @@ class FileTreeTable(DataTable):
             "status": "St",
             "lines": "+/-",
             "size": "Size",
+            "rows": "Lines",
             "mtime": "Modified",
             "author": "Author",
             "git_time": "Git Time",
@@ -595,12 +623,15 @@ class FileTreeTable(DataTable):
         leaves = collect_leaves(self._tree_nodes)
         sizes = [n.entry.size for n in leaves if n.entry and n.entry.size > 0]
         mtimes = [n.entry.mtime for n in leaves if n.entry and n.entry.mtime > 0]
+        git_times = [n.entry.last_git_modified for n in leaves if n.entry and n.entry.last_git_modified]
         self._size_range = (min(sizes), max(sizes)) if sizes else (0, 0)
         # Use global range for stable colors across filter changes
         if mtimes and not self._global_mtime_range[1]:
             self._mtime_range = (min(mtimes), max(mtimes))
         else:
             self._mtime_range = self._global_mtime_range
+        if git_times:
+            self._git_time_range = (min(git_times), max(git_times))
 
     def set_global_mtime_range(self, min_t: float, max_t: float) -> None:
         """Set the mtime range from all project files (stable across filtering)."""
@@ -656,6 +687,14 @@ class FileTreeTable(DataTable):
             return ""
         return Text(_human_size(entry.size), style="dim", justify="right")
 
+    def _render_rows_cell(self, entry: FileEntry | None) -> Text | str:
+        if not entry:
+            return ""
+        if entry.row_count is not None:
+            style = "dim" if entry.row_count == 0 else ""
+            return Text(str(entry.row_count), style=style, justify="right")
+        return Text(_human_size(entry.size), style="dim", justify="right")
+
     def _render_mtime_cell(self, entry: FileEntry | None) -> Text | str:
         if not entry:
             return ""
@@ -676,5 +715,9 @@ class FileTreeTable(DataTable):
         if not entry:
             return ""
         if entry.last_git_modified:
-            return Text(_relative_time(entry.last_git_modified), style="dim italic")
+            style = "dim italic"
+            if self.gradient_colors:
+                idx = _mtime_color_index(float(entry.last_git_modified), *self._git_time_range)
+                style = f"color({_GRADIENT_COLORS[idx]})"
+            return Text(_relative_time(entry.last_git_modified), style=style)
         return Text("...", style="dim")

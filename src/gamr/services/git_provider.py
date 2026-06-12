@@ -169,6 +169,57 @@ class DulwichGitProvider(GitProvider):
             logger.debug("Failed to get blame for %s", rel)
         return None
 
+    def get_bulk_blame(self, paths: list[Path]) -> dict[Path, BlameInfo]:
+        """Get blame info for many files in one log walk (much faster than per-file).
+
+        Walks the commit history once, diffing each commit's tree against its parent
+        to find which files changed. Stops when all requested files have been attributed.
+        """
+        if not self._repo:
+            return {}
+
+        from dulwich.diff_tree import tree_changes
+
+        # Build set of relative paths we need blame for
+        pending: dict[bytes, Path] = {}
+        for p in paths:
+            try:
+                rel = p.relative_to(self.repo_root).as_posix().encode()
+                pending[rel] = p
+            except ValueError:
+                continue
+
+        if not pending:
+            return {}
+
+        result: dict[Path, BlameInfo] = {}
+        try:
+            for entry in self._repo.get_walker():
+                if not pending:
+                    break
+                commit = entry.commit
+                parent_tree_id = None
+                if commit.parents:
+                    try:
+                        parent_tree_id = self._repo[commit.parents[0]].tree
+                    except (KeyError, IndexError):
+                        pass
+
+                # Diff trees to get all changed paths in this commit
+                changes = tree_changes(self._repo.object_store, parent_tree_id, commit.tree)
+                for change in changes:
+                    path_bytes = change.new.path if change.new else (change.old.path if change.old else None)
+                    if path_bytes and path_bytes in pending:
+                        abs_path = pending.pop(path_bytes)
+                        author = commit.author.decode(errors="replace")
+                        if "<" in author:
+                            author = author.split("<")[0].strip()
+                        result[abs_path] = BlameInfo(last_author=author, last_modified=commit.author_time)
+        except Exception:
+            logger.debug("Failed bulk blame walk")
+
+        return result
+
     def _lookup_blob(self, tree_obj: object, path_bytes: bytes) -> bytes | None:
         """Look up file content in a tree by path."""
         # Walk each path component, descending through nested tree objects

@@ -59,8 +59,8 @@ async def test_tree_has_proper_columns() -> None:
         tree.load_entries(entries, Path("/root"))
         await pilot.pause()
 
-        # Should have Name + St + +/- + Size + Modified = 5 columns
-        assert len(tree.columns) == 5
+        # Should have Name + St + +/- + Size + Rows + Modified = 6 columns
+        assert len(tree.columns) == 6
 
 
 async def test_toggle_collapse() -> None:

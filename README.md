@@ -10,6 +10,7 @@
   - Deleted files shown with strikethrough styling
   - Three diff modes: full file diff, gutter markers, unified diff (`d`/`D` to cycle)
   - Blame data (last author, last modified) loaded in background
+  - Bulk blame via single log walk with tree diffing (fast on large repos)
   - Respects `.gitignore` rules
 - **Three view modes** — tree, flat filenames, flat relative paths (`v` to cycle)
 - **Column sorting** — click any column header to sort asc/desc/none
@@ -19,7 +20,7 @@
 - **Copy file references** — double-click or drag lines to copy `path:line` to clipboard
 - **Full file diff** — syntax highlighting with inline +/- markers and colored backgrounds
 - **Diff overview bar** — 1-column change map with 4 density modes (`o` to cycle: line, quadrant, sextant, braille)
-- **Gradient colors** — size and modification time columns colored by relative magnitude
+- **Gradient colors** — size, modification time, and git blame time columns colored by relative magnitude
 - **File icons** — loads from `~/.config/lsd/icons.yaml` if present
 - **Resizable split pane** — drag the divider between tree and preview
 - **Desktop-style navigation** — ←/→ to collapse/expand folders, ← on file collapses parent
@@ -55,7 +56,8 @@ uv run gamr [path]
 | `f`      | Toggle follow mode (auto-select last changed file)   |
 | `ctrl+f` | Focus search input                                   |
 | `b`      | Toggle blame columns (last author, git time)         |
-| `1`–`6`  | Toggle individual columns                            |
+| `1`–`7`  | Toggle individual columns                            |
+| `O`      | Open file in default app (macOS)                     |
 | `tab`    | Switch focus between tree and preview                |
 | `ctrl+p` | Command palette (spaced paths, gradient toggle)      |
 | `q`      | Quit (saves state)                                   |
@@ -103,4 +105,4 @@ uv run pytest
 ## Documentation
 
 - [UI Design Rules](docs/UI_DESIGN.md) — all interaction behaviors and edge cases
-- [Architecture Decision Records](docs/adrs/README.md) — 23 ADRs covering all design choices
+- [Architecture Decision Records](docs/adrs/README.md) — 28 ADRs covering all design choices

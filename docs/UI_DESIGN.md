@@ -75,6 +75,7 @@
 - **J**/**n** — Jump to next diff hunk not currently visible
 - **K**/**N** — Jump to previous diff hunk not currently visible
 - **e** — Open file in `$VISUAL`/`$EDITOR` (vim/nvim get `+line` for scroll position)
+- **O** — Open file in default app via macOS `open` command (no-op on other platforms)
 - Hunk jumps show 3 lines of context above the target; no-op if no changes
 - Contiguous changed lines are treated as a single hunk for navigation
 
@@ -111,16 +112,17 @@
 
 ## Columns
 
-- **1–6** — Toggle individual columns
+- **1–7** — Toggle individual columns
 - **b** — Toggle blame columns (author + git time) and trigger background load
-- Available columns: Name, Status (St), Lines (+/-), Size, Modified, Author, Git Time
-- Size and Modified columns use a 256-color gradient by relative magnitude
+- Available columns: Name, Status (St), Lines (+/-), Size, Lines, Modified, Author, Git Time
+- Size and Modified and Git Time columns use a 256-color gradient by relative magnitude
 - Gradient toggled via command palette
 - Blame columns show "..." while loading, then populate progressively
+- Lines column shows line count for text files, or file size in grey for binary/empty files
 
 ## Gradient Colors
 
-- Applied to Size and Modified columns
+- Applied to Size, Modified, and Git Time columns
 - Color ramp: `[15, 51, 45, 39, 33, 27, 57, 93, 129, 165, 201, 200, 199, 198, 197, 196]`
 - White/cyan (low) → blue/purple (mid) → magenta/red (high)
 - Ranges computed per the currently visible/filtered file set

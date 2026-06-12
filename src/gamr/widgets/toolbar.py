@@ -65,6 +65,11 @@ class Toolbar(Widget):
             # Show/hide logo based on whether there's a query
             self.query_one("#logo").set_class(bool(event.value), "hidden")
 
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id == "search-input":
+            self.hide_search()
+            self.app.query_one("FileTreeTable").focus()
+
     def show_search(self) -> None:
         """Show the search input and hide the logo."""
         self.query_one("#logo").add_class("hidden")
@@ -98,4 +103,11 @@ class Toolbar(Widget):
         """Restore selected filters and search text from persistent state."""
         self.selected_filter_ids = filter_ids & {"modified"}
         self.search_query = search_query
-        self.query_one("#search-input", Input).value = search_query
+        inp = self.query_one("#search-input", Input)
+        inp.value = search_query
+        if search_query:
+            inp.remove_class("hidden")
+            self.query_one("#logo").add_class("hidden")
+        else:
+            inp.add_class("hidden")
+            self.query_one("#logo").remove_class("hidden")

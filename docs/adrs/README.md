@@ -29,3 +29,4 @@
 | [025](025-vim-keybindings-preview-focus.md)   | Vim-style keybindings and preview pane focus              |
 | [026](026-user-preferences-file.md)           | User preferences file (`~/.config/gamr/preferences.toml`) |
 | [027](027-diff-overview-modes.md)             | Diff overview modes and scaling (supersedes 018)          |
+| [028](028-bulk-blame-tree-diffing.md)         | Bulk blame via single log walk with tree diffing          |

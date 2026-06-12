@@ -16,10 +16,10 @@ Computing diff stats (+/- lines) and blame info for every file blocks startup. L
 
 | Data                   | When computed                           | Worker group |
 | ---------------------- | --------------------------------------- | ------------ |
-| File size, mtime       | `build()` (instant via `stat()`)        | —            |
+| File size, mtime, rows | `build()` (instant via `stat()`)        | —            |
 | Git status             | `build()` (single `porcelain.status()`) | —            |
 | Diff stats (+/- lines) | Background after mount                  | `diff_stats` |
-| Blame (author, time)   | On-demand when columns toggled on       | `blame`      |
+| Blame (author, time)   | Background on mount or column toggle    | `blame`      |
 
 ### Consequences
 
