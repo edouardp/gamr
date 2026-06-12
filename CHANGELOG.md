@@ -15,7 +15,6 @@
   - XDG_STATE_HOME for state, XDG_CONFIG_HOME for config (with legacy fallback)
   - Comprehensive UI_DESIGN.md rewrite
 
-
 ## 0.1.9 (2026-06-12)
 
   - Fixed PyPI package missing long description (README now included in build)
