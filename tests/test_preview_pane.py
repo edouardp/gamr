@@ -52,8 +52,10 @@ class TestParseDiffHunks:
     def test_multi_line_replacement_pairing(self):
         diff = "--- a/f\n+++ b/f\n@@ -1,4 +1,4 @@\n ctx\n-old1\n-old2\n+new1\n+new2\n ctx"
         data = parse_diff_hunks(diff)
-        assert data.changed_lines == {2, 3}
+        # Block-based: entire removed block attaches to first added line
+        assert data.changed_lines == {2}
         assert data.added_lines == {2, 3}
+        assert len(data.removed_context[2]) == 2  # both removed lines in one block
 
     def test_more_removed_than_added(self):
         diff = "--- a/f\n+++ b/f\n@@ -1,5 +1,3 @@\n ctx\n-old1\n-old2\n-old3\n+new1\n ctx"

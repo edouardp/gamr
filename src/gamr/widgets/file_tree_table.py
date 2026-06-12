@@ -144,6 +144,7 @@ class FileTreeTable(DataTable):
         self.cursor_type = "row"
         self.zebra_stripes = True
         self._tree_nodes: list[TreeNode] = []
+        self._entries: list[FileEntry] = []
         self._row_to_node: dict[str, TreeNode] = {}  # key=str(path) → node
         self._root_path: Path = Path(".")
         self._size_range: tuple[float, float] = (0, 0)
@@ -165,6 +166,7 @@ class FileTreeTable(DataTable):
     def load_entries(self, entries: list[FileEntry], root_path: Path, collapsed_dirs: set[str] | None = None) -> None:
         """Populate the table from a list of FileEntry objects."""
         self._root_path = root_path
+        self._entries = entries
         self._tree_nodes = build_tree(entries, root_path)
         if collapsed_dirs:
             self._collapsed_dirs.update(collapsed_dirs)
@@ -398,12 +400,12 @@ class FileTreeTable(DataTable):
     def _sync_table(self) -> None:
         """Sync the DataTable to match the current desired view (incremental).
 
-        Computes the visible row list, then diffs against what's displayed:
-        - Rows present in new but not old → add_row
-        - Rows present in old but not new → remove_row
-        - Rows in both but at wrong position or with stale data → remove + re-add
-        For column config changes, falls back to full rebuild.
+        Always rebuilds tree nodes from the stored entries to ensure
+        freshness (new files appear, deleted files disappear).
         """
+        self._sync_collapsed_from_tree()
+        self._tree_nodes = build_tree(self._entries, self._root_path)
+        self._apply_collapsed(self._tree_nodes, self._collapsed_dirs)
         from gamr.widgets.tree_data import visible_rows
 
         # If columns changed, we must do a full clear (can't incrementally change columns)
@@ -610,6 +612,9 @@ class FileTreeTable(DataTable):
     def _render_name_cell(self, node: TreeNode, flat: bool, show_path: bool) -> Text:
         if flat:
             icon = self._icons.get_icon(node.path, node.is_dir)
+            name_style = ""
+            if node.entry and node.entry.git_status in (GitStatus.DELETED, GitStatus.STAGED_DELETED):
+                name_style = "strike dim red"
             if show_path:
                 try:
                     rel = str(node.path.relative_to(self._root_path))
@@ -617,15 +622,20 @@ class FileTreeTable(DataTable):
                     rel = node.path.name
                 if self.spaced_paths:
                     rel = rel.replace("/", " / ")
-                return Text(f"{icon} {rel}")
-            return Text(f"{icon} {node.path.name}")
+                return Text(f"{icon} {rel}", style=name_style)
+            return Text(f"{icon} {node.path.name}", style=name_style)
 
         indent = "  " * (node.depth - 1) if node.depth > 0 else ""
         icon = self._icons.get_icon(node.path, is_dir=node.is_dir)
         if node.is_dir:
             arrow = "▼ " if node.expanded else "▶ "
             return Text(f"{indent}{arrow}{icon} {node.path.name}/", style="bold")
-        return Text(f"{indent}  {icon} {node.path.name}")
+        name_style = ""
+        if node.entry and node.entry.git_status in (GitStatus.DELETED, GitStatus.STAGED_DELETED):
+            name_style = "strike dim red"
+        t = Text(f"{indent}  {icon} ")
+        t.append(node.path.name, style=name_style)
+        return t
 
     def _render_status_cell(self, entry: FileEntry | None) -> Text | str:
         if entry and entry.git_status and entry.git_status in _STATUS_STYLES:

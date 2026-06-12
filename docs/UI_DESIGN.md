@@ -115,6 +115,8 @@
 - Graceful degradation for non-git directories: hides status/lines columns
 - `.gitignore` rules enforced via Dulwich's `IgnoreFilterManager` (handles nesting, negation, `**` globs)
 - Git status: M (modified), A (added), D (deleted), ? (untracked), SM/SA/SD (staged variants)
+- Deleted files shown with strikethrough, dimmed red filename
+- `g` filter shows all files that would appear in `git status` (modified, added, deleted, untracked, staged)
 - Diff computed against HEAD
 
 ## Live File Watching
@@ -140,6 +142,7 @@
 - Not modified by the app — user-edited only
 - Available settings:
   - `[preview] diff_modes` — list of diff modes to cycle through with `d` (options: `"full"`, `"gutter"`, `"unified"`, default: all three)
+  - `[preview] overview_styles` — list of overview styles to cycle through with `o` (options: `"line"`, `"quadrant"`, `"sextant"`, `"braille"`, `"off"`, default: all five)
 
 ## Resizable Split
 
@@ -151,14 +154,23 @@
 ## Diff Overview Bar
 
 - 1-column bar docked to the right of the preview pane
-- Only visible in full diff mode; hidden in unified diff and plain preview
-- Shows file-level change distribution: green (added), red (removed), yellow (mixed), dim (unchanged)
-- Two styles toggled via command palette (`ctrl+p` → "braille"):
-  - **Line mode** (default): `┃`/`│` characters
-  - **Braille mode**: Unicode braille dots packing 4 source lines per terminal row
+- Visible in full diff and gutter modes; hidden in unified diff and plain preview
+- Shows file-level change distribution: green (added), red (removed), orange (modified/mixed), dim (unchanged)
+- **`o`** — Cycle overview style: line → quadrant → sextant → braille → off
+- Five styles (all render on right side of cell for visual consistency):
+  - **Line** (default): `▐` or space, 1 line per row
+  - **Quadrant**: `▝`/`▗`/`▐`, 2 lines per row
+  - **Sextant**: right-column sextant characters, 3 lines per row (requires Unicode 13.0 terminal)
+  - **Braille**: right-column braille dots, 4 lines per row
+  - **Off**: overview bar hidden
+- Scaling behavior:
+  - When file fits in view (lines ≤ height): 1:1 mapping, full-height mark per changed line
+  - When file exceeds view: sub-cell slots compress lines proportionally, never missing a change
+- Overview style persisted between sessions
+- **Terminal compatibility**: Sextant mode uses Unicode 13.0 "Symbols for Legacy Computing" characters. Supported in Ghostty, Kitty, and WezTerm. May render as boxes in macOS Terminal.app or older terminals. Configure which styles are available via `[preview] overview_styles` in `~/.config/gamr/preferences.toml`.
 
 ## Command Palette (ctrl+p)
 
 - Toggle spaced paths
 - Toggle gradient colors
-- Toggle diff overview style (line/braille)
+- Cycle diff overview style (line/quadrant/sextant/braille/off)

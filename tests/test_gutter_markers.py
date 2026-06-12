@@ -85,11 +85,11 @@ class TestMixedChanges:
         assert added == set()
 
     def test_multi_line_replacement(self):
-        # Two lines replaced by two lines — both are "changed"
+        # Two lines replaced by two lines — block-based: first is "changed", second is "added"
         diff = _make_diff("@@ -1,4 +1,4 @@\n ctx\n-old1\n-old2\n+new1\n+new2\n ctx")
         changed, added, deleted = compute_gutter_markers(diff, 4)
-        assert changed == {2, 3}
-        assert added == set()
+        assert changed == {2}
+        assert added == {3}
         assert deleted == set()
 
 

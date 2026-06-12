@@ -23,9 +23,8 @@ class DiffData:
 def parse_diff_hunks(diff_text: str | None) -> DiffData:
     """Parse unified diff into structured data.
 
-    Each + line that follows a - line is paired as a "changed" line (1:1).
-    Excess + lines are "added", excess - lines become "removed_context"
-    attached to the next source line.
+    Removed lines are grouped as a block and attached to the next source line
+    that follows them (or trailing if at end of file).
     """
     added_lines: set[int] = set()
     changed_lines: set[int] = set()
@@ -47,8 +46,9 @@ def parse_diff_hunks(diff_text: str | None) -> DiffData:
             added_lines.add(current_new_line)
             if pending_removed:
                 changed_lines.add(current_new_line)
+                # Attach entire removed block to the first added line after it
                 removed_context[current_new_line] = pending_removed
-                pending_removed = pending_removed[1:]
+                pending_removed = []
         elif dline.startswith("-") and not dline.startswith("---"):
             pending_removed.append(dline[1:])
         else:

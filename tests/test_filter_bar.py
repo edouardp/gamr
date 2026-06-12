@@ -65,7 +65,8 @@ async def test_toggle_modified() -> None:
         bar.toggle_modified()
         await pilot.pause()
         assert bar.selected_filter_ids == {"modified"}
-        assert bar.active_statuses == {GitStatus.MODIFIED}
+        assert GitStatus.MODIFIED in bar.active_statuses
+        assert GitStatus.UNTRACKED in bar.active_statuses
 
         bar.toggle_modified()
         await pilot.pause()

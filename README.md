@@ -7,6 +7,7 @@
 - **Live file watching** — tree updates automatically when files change (watchdog + polling fallback)
 - **Git integration** — pure Python via Dulwich, no git binary required
   - File status indicators (Modified, Added, Deleted, Untracked, Staged)
+  - Deleted files shown with strikethrough styling
   - Three diff modes: full file diff, gutter markers, unified diff (`d`/`D` to cycle)
   - Blame data (last author, last modified) loaded in background
   - Respects `.gitignore` rules
@@ -17,7 +18,7 @@
 - **Syntax-highlighted preview** — Monokai theme, scrollable, line numbers
 - **Copy file references** — double-click or drag lines to copy `path:line` to clipboard
 - **Full file diff** — syntax highlighting with inline +/- markers and colored backgrounds
-- **Diff overview bar** — 1-column change map (line or braille style) in full diff mode
+- **Diff overview bar** — 1-column change map with 4 density modes (`o` to cycle: line, quadrant, sextant, braille)
 - **Gradient colors** — size and modification time columns colored by relative magnitude
 - **File icons** — loads from `~/.config/lsd/icons.yaml` if present
 - **Resizable split pane** — drag the divider between tree and preview
@@ -37,26 +38,27 @@ uv run gamr [path]
 
 ## Keybindings
 
-| Key      | Action                                             |
-| -------- | -------------------------------------------------- |
-| `↑`/`↓`  | Navigate files                                     |
-| `j`/`k`  | Navigate files (tree) or scroll (preview)          |
-| `→`      | Expand directory                                   |
-| `←`      | Collapse directory (or parent if on file)          |
-| `space`  | Toggle expand/collapse (tree) or page down (preview)|
-| `v`      | Cycle view mode (tree → flat name → flat path)     |
-| `d`      | Cycle diff mode (full → gutter → unified)           |
-| `D`      | Cycle diff mode reverse                            |
-| `J`/`n`  | Jump to next diff hunk (preview)                   |
-| `K`/`N`  | Jump to previous diff hunk (preview)               |
-| `g`      | Toggle git modified filter                         |
-| `f`      | Toggle follow mode (auto-select last changed file) |
-| `ctrl+f` | Focus search input                                 |
-| `b`      | Toggle blame columns (last author, git time)       |
-| `1`–`6`  | Toggle individual columns                          |
-| `tab`    | Switch focus between tree and preview              |
-| `ctrl+p` | Command palette (spaced paths, gradient toggle)    |
-| `q`      | Quit (saves state)                                 |
+| Key      | Action                                               |
+| -------- | ---------------------------------------------------- |
+| `↑`/`↓`  | Navigate files                                       |
+| `j`/`k`  | Navigate files (tree) or scroll (preview)            |
+| `→`      | Expand directory                                     |
+| `←`      | Collapse directory (or parent if on file)            |
+| `space`  | Toggle expand/collapse (tree) or page down (preview) |
+| `v`      | Cycle view mode (tree → flat name → flat path)       |
+| `d`      | Cycle diff mode (full → gutter → unified)            |
+| `D`      | Cycle diff mode reverse                              |
+| `J`/`n`  | Jump to next diff hunk (preview)                     |
+| `K`/`N`  | Jump to previous diff hunk (preview)                 |
+| `o`      | Cycle diff overview style                            |
+| `g`      | Toggle git modified filter                           |
+| `f`      | Toggle follow mode (auto-select last changed file)   |
+| `ctrl+f` | Focus search input                                   |
+| `b`      | Toggle blame columns (last author, git time)         |
+| `1`–`6`  | Toggle individual columns                            |
+| `tab`    | Switch focus between tree and preview                |
+| `ctrl+p` | Command palette (spaced paths, gradient toggle)      |
+| `q`      | Quit (saves state)                                   |
 
 Column headers are clickable to sort (ascending → descending → none).
 

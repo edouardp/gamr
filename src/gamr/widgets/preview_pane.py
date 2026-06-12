@@ -72,10 +72,9 @@ class DiffOverview(Static):
             self.update("")
             return
 
-        removed_positions: set[int] = {ln - 1 for ln in removed}
         self._total_lines = total_lines
         self._green = added
-        self._red = removed_positions
+        self._red: set[int] = set()
         self._orange: set[int] = set()
         self._render_overview()
 
@@ -102,10 +101,8 @@ class DiffOverview(Static):
             self.update("")
             return
 
-        # Use content_size.height if available, fall back to parent height
-        height = self.content_size.height
-        if height < 2:
-            height = self.size.height
+        # Use the widget's allocated height as the overview bar height
+        height = self.size.height
         if height < 2:
             height = 20
 
@@ -164,26 +161,51 @@ class DiffOverview(Static):
         slots_per_row: int,
         char_fn,
     ) -> Text:
-        """Generic sub-cell renderer. Divides file into slots_per_row subdivisions per terminal row."""
-        lines_per_slot = total_lines / (height * slots_per_row)
+        """Generic sub-cell renderer with adaptive scaling.
+
+        Principles:
+        - When total_lines <= height: 1:1 mode, one full-height mark per line
+        - When total_lines > height: use sub-cell slots to encode multiple lines per row
+        - Never miss a changed line (any line touching a slot's range lights it)
+        - For braille (discrete dots): each dot represents ≥1 line
+        """
         all_changes = green | red | orange
         result = Text(no_wrap=True)
 
-        for row in range(height):
-            slot_hits = []
-            has_green = False
-            has_red = False
-            has_orange = False
-            for slot in range(slots_per_row):
-                slot_start = int((row * slots_per_row + slot) * lines_per_slot) + 1
-                slot_end = int((row * slots_per_row + slot + 1) * lines_per_slot) + 1
-                hit = any(i in all_changes for i in range(slot_start, slot_end))
-                slot_hits.append(hit)
-                if hit:
-                    has_green = has_green or any(i in green for i in range(slot_start, slot_end))
-                    has_red = has_red or any(i in red for i in range(slot_start, slot_end))
-                    has_orange = has_orange or any(i in orange for i in range(slot_start, slot_end))
+        total_slots = height * slots_per_row
+        # When file fits in view, use 1:1 positioning (no stretching).
+        # When file overflows, scale to fill all available slots.
+        if total_lines <= height:
+            scale = float(slots_per_row)  # 1 line = slots_per_row slots = 1 full row
+        else:
+            scale = total_slots / total_lines
 
+        # Pass 1: Build slot bitmap — map each changed line to its slot(s)
+        slot_lit = [False] * total_slots
+        slot_green = [False] * total_slots
+        slot_red = [False] * total_slots
+        slot_orange = [False] * total_slots
+
+        for line in all_changes:
+            # Each line occupies a proportional range of slots
+            s_start = int((line - 1) * scale)
+            s_end = max(s_start + 1, int(line * scale))
+            for s in range(s_start, min(s_end, total_slots)):
+                slot_lit[s] = True
+                if line in green:
+                    slot_green[s] = True
+                if line in red:
+                    slot_red[s] = True
+                if line in orange:
+                    slot_orange[s] = True
+
+        # Pass 2: Render slots into characters
+        for row in range(height):
+            base = row * slots_per_row
+            slot_hits = slot_lit[base : base + slots_per_row]
+            has_green = any(slot_green[base : base + slots_per_row])
+            has_red = any(slot_red[base : base + slots_per_row])
+            has_orange = any(slot_orange[base : base + slots_per_row])
             char = char_fn(slot_hits)
             style = self._classify_color(has_green, has_red, has_orange)
             result.append(char + "\n", style=style)
@@ -437,7 +459,7 @@ class PreviewPane(Widget):
         content = self._read_file(path)
         if content is None:
             return
-        styled, _total, _added, _removed = self._render_highlighted(path, content)
+        styled, _total, _added, _removed, _dg, _dr = self._render_highlighted(path, content)
         self._change_source_lines = []
         self._update_overview_for_diff(0, set(), {})
         self._set_content(styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
@@ -451,9 +473,23 @@ class PreviewPane(Widget):
                 return
         else:
             content = ""
-        styled, total_lines, added_lines, removed_context = self._render_highlighted(path, content, diff_text=diff_text)
+        styled, total_lines, added_lines, removed_context, display_green, display_red = self._render_highlighted(
+            path, content, diff_text=diff_text
+        )
         self._change_source_lines = sorted(added_lines | set(removed_context.keys()))
-        self._update_overview_for_diff(total_lines, added_lines, removed_context)
+        # Overview uses display-row positions (matching preview rendering)
+        total_display_rows = len(self._row_to_source)
+        overview = self.query_one(DiffOverview)
+        if total_display_rows > 0 and (display_green or display_red):
+            overview._total_lines = total_display_rows
+            overview._green = display_green
+            overview._red = display_red
+            overview._orange = set()
+            overview._render_overview()
+            overview.display = True
+        else:
+            overview.clear_overview()
+            overview.display = False
         self._set_content(styled, scroll_to_top=scroll_to_top, restore_line=restore_line)
 
     def show_gutter_diff(
@@ -469,7 +505,7 @@ class PreviewPane(Widget):
         changed_lines, pure_added, has_deletion_after = compute_gutter_markers(diff_text, total_lines)
         gutter = (changed_lines, pure_added, has_deletion_after)
 
-        styled, total_lines, _, _ = self._render_highlighted(path, content, gutter_markers=gutter)
+        styled, total_lines, _, _, _, _ = self._render_highlighted(path, content, gutter_markers=gutter)
 
         self._change_source_lines = sorted(changed_lines | pure_added | has_deletion_after)
         overview = self.query_one(DiffOverview)
@@ -578,11 +614,15 @@ class PreviewPane(Widget):
         content: str,
         diff_text: str | None = None,
         gutter_markers: tuple[set[int], set[int], set[int]] | None = None,
-    ) -> tuple[Text, int, set[int], dict[int, list[str]]]:
+    ) -> tuple[Text, int, set[int], dict[int, list[str]], set[int], set[int]]:
         """Shared renderer: syntax-highlighted file with optional diff/gutter markers.
 
         Args:
             gutter_markers: (changed_lines, pure_added, has_deletion_after) for gutter mode.
+
+        Returns:
+            (styled, total_source_lines, added_lines, removed_context,
+             display_green, display_red) — last two are 1-indexed display row sets.
         """
         diff_data = parse_diff_hunks(diff_text)
         added_lines = diff_data.added_lines
@@ -610,6 +650,8 @@ class PreviewPane(Widget):
         styled = Text(no_wrap=True)
         # Maps display row index → source file line number (for scroll position tracking)
         row_to_source: list[int] = []
+        display_green: set[int] = set()
+        display_red: set[int] = set()
 
         for i, hi_line in enumerate(hi_lines, 1):
             # Show removed lines before this line
@@ -621,6 +663,7 @@ class PreviewPane(Widget):
                     line_content = f"- {rline}"
                     styled.append(line_content.ljust(pad_width) + "\n", style=f"on {self._diff_bg_removed}")
                     row_to_source.append(i)
+                    display_red.add(len(row_to_source))
 
             # Line number
             styled.append(f"{str(i).rjust(ln_width)} ", style="dim")
@@ -653,6 +696,8 @@ class PreviewPane(Widget):
 
             styled.append("\n")
             row_to_source.append(i)
+            if diff_text and i in added_lines:
+                display_green.add(len(row_to_source))
 
         # Trailing removed lines
         for rline in trailing_removed:
@@ -661,10 +706,11 @@ class PreviewPane(Widget):
             line_content = f"- {rline}"
             styled.append(line_content.ljust(pad_width) + "\n", style=f"on {self._diff_bg_removed}")
             row_to_source.append(total_lines)
+            display_red.add(len(row_to_source))
 
         self._row_to_source = row_to_source
 
-        return styled, total_lines, added_lines, removed_context
+        return styled, total_lines, added_lines, removed_context, display_green, display_red
 
     def _update_overview_for_diff(self, total_lines: int, added_lines: set[int], removed_context: dict) -> None:
         """Update the diff overview bar based on diff data."""

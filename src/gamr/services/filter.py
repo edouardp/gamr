@@ -18,7 +18,21 @@ class StatusFilter:
 
 
 STATUS_FILTERS = (
-    StatusFilter("modified", "M", frozenset({GitStatus.MODIFIED})),
+    StatusFilter(
+        "modified",
+        "M",
+        frozenset(
+            {
+                GitStatus.MODIFIED,
+                GitStatus.ADDED,
+                GitStatus.DELETED,
+                GitStatus.UNTRACKED,
+                GitStatus.STAGED_MODIFIED,
+                GitStatus.STAGED_ADDED,
+                GitStatus.STAGED_DELETED,
+            }
+        ),
+    ),
     StatusFilter("added", "A", frozenset({GitStatus.ADDED, GitStatus.STAGED_ADDED})),
     StatusFilter(
         "deleted",

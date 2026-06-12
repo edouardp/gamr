@@ -19,6 +19,7 @@ Domain model owns all preview decisions:
   restore_line           — passed atomically through show methods (no post-render scroll)
 """
 
+import os
 from pathlib import Path
 
 from textual import work
@@ -59,7 +60,7 @@ class GamrApp(App):
         # Modes
         Binding("f", "toggle_follow", "Follow", show=True, priority=True),
         Binding("v", "cycle_view", "View mode", show=True, priority=True),
-        Binding("d", "toggle_diff", "Diff toggle", show=True, priority=True),
+        Binding("d", "toggle_diff", "Diff mode", show=True, priority=True),
         Binding("D", "toggle_diff_reverse", show=False, priority=True),
         # Columns
         Binding("b", "toggle_blame", "Blame cols", show=True, priority=True),
@@ -72,6 +73,7 @@ class GamrApp(App):
         # Filters
         Binding("g", "toggle_modified", "Git modified", show=True, priority=True),
         Binding("o", "cycle_overview", "Overview mode", show=True, priority=True),
+        Binding("e", "open_editor", "Editor", show=True, priority=True),
         # App lifecycle
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
@@ -554,24 +556,53 @@ class GamrApp(App):
     def action_toggle_modified(self) -> None:
         self.query_one(FilterBar).toggle_modified()
 
+    def action_open_editor(self) -> None:
+        """Open the previewed file in $EDITOR at the current scroll position."""
+        import subprocess  # nosec B404
+
+        if not self._previewed_path or not self._previewed_path.is_file():
+            return
+        editor = os.environ.get("VISUAL", os.environ.get("EDITOR", "vim"))
+        preview = self.query_one(PreviewPane)
+        line = preview.get_source_line_at_scroll()
+        # Build command — vim/nvim/vi support +line syntax
+        cmd = [editor]
+        editor_name = Path(editor).name
+        if editor_name in ("vim", "nvim", "vi") and line > 1:
+            cmd.append(f"+{line}")
+        cmd.append(str(self._previewed_path))
+
+        with self.suspend():
+            subprocess.run(cmd)  # nosec B603
+
     def action_cycle_overview(self) -> None:
-        """Cycle diff overview style: line → quadrant → sextant → braille → off."""
+        """Cycle diff overview style through preferences.overview_styles."""
         overview = self.query_one(PreviewPane).query_one(DiffOverview)
+        styles = self._prefs.overview_styles
+        current = self._get_overview_style(overview)
+        try:
+            idx = styles.index(current)
+        except ValueError:
+            idx = -1
+        next_style = styles[(idx + 1) % len(styles)]
+        self._set_overview_style(overview, next_style)
+
+    def _get_overview_style(self, overview: DiffOverview) -> str:
         if not overview.display:
-            # off → line
-            overview.display = True
-        elif overview.use_braille:
-            # braille → off
-            overview.use_braille = False
-            overview.display = False
-        elif overview.use_sextant:
-            overview.use_sextant = False
-            overview.use_braille = True
-        elif overview.use_quadrant:
-            overview.use_quadrant = False
-            overview.use_sextant = True
-        else:
-            overview.use_quadrant = True
+            return "off"
+        if overview.use_braille:
+            return "braille"
+        if overview.use_sextant:
+            return "sextant"
+        if overview.use_quadrant:
+            return "quadrant"
+        return "line"
+
+    def _set_overview_style(self, overview: DiffOverview, style: str) -> None:
+        overview.use_braille = style == "braille"
+        overview.use_quadrant = style == "quadrant"
+        overview.use_sextant = style == "sextant"
+        overview.display = style != "off"
 
     # -------------------------------------------------------------------------
     # State persistence

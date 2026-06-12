@@ -154,20 +154,14 @@ class TestBraille1to1WhenContentFits:
         self.overview = DiffOverview()
 
     def test_change_at_line_10_appears_in_correct_region(self):
-        """With 15 lines in 40 rows, line 10 should appear proportionally positioned."""
+        """With 15 lines in 40 rows, line 10 → row 9 (1:1 since 15 <= 40)."""
         result = self.overview._render_braille(15, 40, green={10}, red=set(), orange=set())
-        # Line 10/15 scaled across 40 rows ≈ row 26
-        # Find which row has the green style
-        green_rows = [r for r in range(40) if "green" in _style_at(result, r)]
-        assert len(green_rows) == 1
-        assert green_rows[0] > 20  # should be in the lower portion
+        assert "green" in _style_at(result, 9)
 
     def test_change_at_last_line_near_bottom(self):
-        """Line 20 in a 20-line file with 30 rows should appear near the bottom."""
+        """With 20 lines in 30 rows, line 20 → row 19 (1:1 since 20 <= 30)."""
         result = self.overview._render_braille(20, 30, green=set(), red={20}, orange=set())
-        red_rows = [r for r in range(30) if "red" in _style_at(result, r)]
-        assert len(red_rows) >= 1
-        assert red_rows[0] >= 25  # last line should be near bottom
+        assert "red" in _style_at(result, 19)
         assert "dim" in _style_at(result, 0)
 
     def test_fills_available_height(self):
