@@ -196,21 +196,20 @@ class DiffOverview(Static):
 
     @staticmethod
     def _char_quadrant(slots: list[bool]) -> str:
-        # Upper half = slots[0], lower half = slots[1]
-        # ▀ = upper, ▄ = lower, █ = both, ' ' = neither
+        # Right half: ▝ = top-right, ▗ = bottom-right, ▐ = both
         top, bot = slots
         if top and bot:
-            return "█"
+            return "▐"
         if top:
-            return "▀"
+            return "▝"
         if bot:
-            return "▄"
+            return "▗"
         return " "
 
     @staticmethod
     def _char_braille(slots: list[bool]) -> str:
-        # Left column dots: positions 0,1,2,6 in braille encoding
-        _BITS = [0x01, 0x02, 0x04, 0x40]
+        # Right column dots: positions 3,4,5,7 in braille encoding
+        _BITS = [0x08, 0x10, 0x20, 0x80]
         dots = sum(b for hit, b in zip(slots, _BITS, strict=True) if hit)
         return chr(0x2800 + dots)
 
