@@ -15,10 +15,10 @@ from gamr.widgets.file_tree_table import ViewMode
 
 
 def _config_state_path(target_path: Path) -> Path:
-    """Return $XDG_CONFIG_HOME/gamr/state/<hash>.json for a target path."""
-    config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    """Return $XDG_STATE_HOME/gamr/<hash>.json for a target path."""
+    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
     path_hash = hashlib.sha256(str(target_path.resolve()).encode()).hexdigest()[:16]
-    return config_home / "gamr" / "state" / f"{path_hash}.json"
+    return state_home / "gamr" / f"{path_hash}.json"
 
 
 if TYPE_CHECKING:
@@ -77,7 +77,7 @@ class AppState:
         """Load valid state for a target path, otherwise return defaults.
 
         Checks for a local .gamrstate first (legacy/existing). If not present,
-        uses ~/.config/gamr/state/<hash>.json.
+        checks $XDG_STATE_HOME/gamr/, then falls back to legacy ~/.config/gamr/state/.
         """
         default = cls(target_path)
         local_file = target_path / ".gamrstate"
@@ -85,6 +85,13 @@ class AppState:
             state_file = local_file
         else:
             state_file = _config_state_path(target_path)
+            if not state_file.exists():
+                # Legacy fallback: old location under config dir
+                path_hash = hashlib.sha256(str(target_path.resolve()).encode()).hexdigest()[:16]
+                config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+                legacy = config_home / "gamr" / "state" / f"{path_hash}.json"
+                if legacy.exists():
+                    state_file = legacy
         if not state_file.exists():
             return default
         try:
@@ -97,7 +104,7 @@ class AppState:
         """Persist current state.
 
         Writes to local .gamrstate if one already exists (legacy), otherwise
-        writes to ~/.config/gamr/state/<hash>.json.
+        writes to $XDG_STATE_HOME/gamr/<hash>.json.
         """
         local_file = self.target_path / ".gamrstate"
         if local_file.exists():
