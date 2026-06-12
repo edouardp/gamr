@@ -259,6 +259,7 @@ class FileTreeTable(DataTable):
         if node and node.is_dir:
             node.expanded = not node.expanded
             self._sync_table()
+            self.restore_cursor(node.path)
 
     def action_expand_node(self) -> None:
         """Expand the currently highlighted directory."""
@@ -268,6 +269,7 @@ class FileTreeTable(DataTable):
         if node and node.is_dir and not node.expanded:
             node.expanded = True
             self._sync_table()
+            self.restore_cursor(node.path)
 
     def action_collapse_node(self) -> None:
         """Collapse current dir, or navigate to parent if on file/collapsed dir.
@@ -285,6 +287,7 @@ class FileTreeTable(DataTable):
         if node.is_dir and node.expanded:
             node.expanded = False
             self._sync_table()
+            self.restore_cursor(node.path)
         else:
             parent_path = node.path.parent
             if parent_path == self._root_path:

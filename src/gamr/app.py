@@ -353,6 +353,7 @@ class GamrApp(App):
     def _render_preview_sync(self, entry: FileEntry, *, scroll_to_top: bool = True, restore_line: int = 0) -> None:
         """Render file content or diff in the preview pane based on current diff mode."""
         preview = self.query_one(PreviewPane)
+        preview.loading = False
         preview.show_diff = self._diff_mode
         is_diffable = entry.git_status and self._git.is_git_repo()
         diff = self._git.get_diff(entry.path) if is_diffable else ""
