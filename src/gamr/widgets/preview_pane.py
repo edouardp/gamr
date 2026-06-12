@@ -643,8 +643,8 @@ class PreviewPane(Widget):
     def get_source_line_at_scroll(self) -> int:
         """Get the source file line number at the current scroll position."""
         scroller = self.query_one("#preview-scroll", VerticalScroll)
-        # Stop any animation so we read the final intended position
-        scroller.stop_animation("scroll_y")
+        # Snap to animation target (sync alternative to async stop_animation)
+        scroller.scroll_y = scroller.scroll_target_y
         row = int(scroller.scroll_y)
         mapping = self._row_to_source
         if not mapping:
@@ -698,7 +698,7 @@ class PreviewPane(Widget):
         self._last_rendered_path = self.current_path
         scroller = self.query_one("#preview-scroll", VerticalScroll)
         if restore_line > 1:
-            scroller.stop_animation("scroll_y")
+            scroller.scroll_y = scroller.scroll_target_y
             self.scroll_to_source_line(restore_line)
         elif scroll_to_top:
             scroller.scroll_home(animate=False)
