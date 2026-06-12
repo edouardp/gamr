@@ -165,23 +165,20 @@ class _Handler(FileSystemEventHandler):
         self._queue = queue
         self._is_ignored = is_ignored
 
-    def on_created(self, event: FileSystemEvent) -> None:
+    def _emit(self, event: FileSystemEvent, change_type: ChangeType) -> None:
         if not event.is_directory:
             p = Path(event.src_path)
             if not self._is_ignored(p):
-                self._queue.put(FileChange(p, ChangeType.CREATED))
+                self._queue.put(FileChange(p, change_type))
+
+    def on_created(self, event: FileSystemEvent) -> None:
+        self._emit(event, ChangeType.CREATED)
 
     def on_deleted(self, event: FileSystemEvent) -> None:
-        if not event.is_directory:
-            p = Path(event.src_path)
-            if not self._is_ignored(p):
-                self._queue.put(FileChange(p, ChangeType.DELETED))
+        self._emit(event, ChangeType.DELETED)
 
     def on_modified(self, event: FileSystemEvent) -> None:
-        if not event.is_directory:
-            p = Path(event.src_path)
-            if not self._is_ignored(p):
-                self._queue.put(FileChange(p, ChangeType.MODIFIED))
+        self._emit(event, ChangeType.MODIFIED)
 
     def on_moved(self, event: FileSystemEvent) -> None:
         # A single directory move event is enough to trigger the app's full rescan.

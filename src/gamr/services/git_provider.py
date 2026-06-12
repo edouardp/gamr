@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import logging
 import os
 from abc import ABC, abstractmethod
@@ -130,8 +131,6 @@ class DulwichGitProvider(GitProvider):
             new_content = []
 
         old_content = old_blob.splitlines(True) if old_blob else []
-
-        import difflib
 
         diff_lines = difflib.unified_diff(
             [line.decode(errors="replace") for line in old_content],

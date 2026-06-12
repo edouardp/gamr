@@ -205,41 +205,47 @@ class GamrApp(App):
         self.workers.cancel_group(self, "diff_stats")
         self.workers.cancel_group(self, "blame")
 
-        # Rebuild index (picks up new git statuses, file additions/deletions)
+        self._rebuild_and_reload_tree(tree, collapsed)
+        self._refresh_preview_if_needed(changed_paths, git_changed)
+        self._handle_follow_mode(changed_paths, tree)
+        self._restart_background_workers(tree, changed_paths, git_changed)
+
+    def _rebuild_and_reload_tree(self, tree: FileTreeTable, collapsed: set[str]) -> None:
+        """Rebuild the file index and reload the tree with current filters."""
         self._all_entries = self._file_index.build()
         self._update_global_mtime_range(tree)
-
-        # Re-apply filters and sync the table (incremental — only changed rows update)
         filter_bar = self.query_one(FilterBar)
         filtered = self._apply_filters(filter_bar.active_statuses, filter_bar.search_query)
         tree.load_entries(filtered, self.target_path, collapsed_dirs=collapsed)
 
-        # Update preview if the currently previewed file's content or git status changed
-        if self._previewed_path:
-            file_content_changed = changed_paths and self._previewed_path in set(changed_paths)
-            entry = self._file_index.entries.get(self._previewed_path)
-            # On git state change, only refresh if this file's status actually differs
-            git_status_changed = False
-            if git_changed and entry:
-                old_status = getattr(self, "_previewed_git_status", None)
-                if entry.git_status != old_status:
-                    git_status_changed = True
-            if (file_content_changed or git_status_changed) and entry and self._is_previewable(entry):
-                preview = self.query_one(PreviewPane)
-                source_line = preview.get_source_line_at_scroll()
-                preview.invalidate()
-                self._show_preview_for(entry, scroll_to_top=False, restore_line=source_line)
-            if entry:
-                self._previewed_git_status = entry.git_status
+    def _refresh_preview_if_needed(self, changed_paths: list[Path] | None, git_changed: bool) -> None:
+        """Re-render preview if the previewed file's content or git status changed."""
+        if not self._previewed_path:
+            return
+        entry = self._file_index.entries.get(self._previewed_path)
+        file_content_changed = changed_paths and self._previewed_path in set(changed_paths)
+        git_status_changed = git_changed and entry and entry.git_status != self._previewed_git_status
+        if (file_content_changed or git_status_changed) and entry and self._is_previewable(entry):
+            preview = self.query_one(PreviewPane)
+            source_line = preview.get_source_line_at_scroll()
+            preview.invalidate()
+            self._show_preview_for(entry, scroll_to_top=False, restore_line=source_line)
+        if entry:
+            self._previewed_git_status = entry.git_status
 
-        # Follow mode: jump to the last changed file
-        if self._follow_mode and changed_paths:
-            follow_path = changed_paths[-1]
-            tree.restore_cursor(follow_path)
-            self._previewed_path = follow_path
-            self._show_followed_path(follow_path)
+    def _handle_follow_mode(self, changed_paths: list[Path] | None, tree: FileTreeTable) -> None:
+        """In follow mode, jump cursor to the last changed file."""
+        if not self._follow_mode or not changed_paths:
+            return
+        follow_path = changed_paths[-1]
+        tree.restore_cursor(follow_path)
+        self._previewed_path = follow_path
+        self._show_followed_path(follow_path)
 
-        # Re-trigger background workers (only when git state changed or files modified)
+    def _restart_background_workers(
+        self, tree: FileTreeTable, changed_paths: list[Path] | None, git_changed: bool
+    ) -> None:
+        """Re-trigger diff stats and blame workers after changes."""
         if self._git.is_git_repo() and (git_changed or changed_paths):
             self._load_diff_stats()
             if tree.show_author or tree.show_git_time:
@@ -294,12 +300,9 @@ class GamrApp(App):
         worker = get_current_worker()
         path = entry.path
 
-        # Read file (thread-safe)
+        # Pre-read file in background to check binary/errors before main-thread render
         try:
-            if not path.exists():
-                raw = b""
-            else:
-                raw = path.read_bytes()
+            raw = path.read_bytes() if path.exists() else b""
         except OSError:
             if not worker.is_cancelled:
                 self.call_from_thread(self._apply_preview_error, path, "Cannot read file")
@@ -308,16 +311,15 @@ class GamrApp(App):
         if worker.is_cancelled:
             return
 
-        if b"\x00" in raw[:8192]:
+        if raw and b"\x00" in raw[:8192]:
             if not worker.is_cancelled:
-                self.call_from_thread(self._apply_preview_error, path, f"Binary file: {path.name}")
+                self.call_from_thread(self._apply_preview_error, path, path.name)
             return
 
-        _content = raw.decode(errors="replace")  # noqa: F841 — warms page cache
-
-        # Diff calculation (thread-safe, pure Python via Dulwich)
+        # Pre-compute diff in background (Dulwich is thread-safe)
         is_diffable = entry.git_status and self._git.is_git_repo()
-        _diff_text = self._git.get_diff(entry.path) if is_diffable else ""  # noqa: F841
+        if is_diffable:
+            self._git.get_diff(entry.path)  # warms cache
 
         if worker.is_cancelled:
             return
@@ -349,24 +351,19 @@ class GamrApp(App):
         preview = self.query_one(PreviewPane)
         preview.show_diff = self._diff_mode
         is_diffable = entry.git_status and self._git.is_git_repo()
+        diff = self._git.get_diff(entry.path) if is_diffable else ""
+        kwargs = {"scroll_to_top": scroll_to_top, "restore_line": restore_line}
 
-        if is_diffable and self._diff_mode == DiffMode.UNIFIED:
-            diff = self._git.get_diff(entry.path)
-            if diff:
-                preview.show_diff_content(diff, path=entry.path, scroll_to_top=scroll_to_top, restore_line=restore_line)
-                return
-        elif is_diffable and self._diff_mode == DiffMode.FULL:
-            diff = self._git.get_diff(entry.path)
-            if diff:
-                preview.show_full_diff(entry.path, diff, scroll_to_top=scroll_to_top, restore_line=restore_line)
-                return
-        elif is_diffable and self._diff_mode == DiffMode.GUTTER:
-            diff = self._git.get_diff(entry.path)
-            if diff:
-                preview.show_gutter_diff(entry.path, diff, scroll_to_top=scroll_to_top, restore_line=restore_line)
-                return
+        if diff:
+            dispatch = {
+                DiffMode.UNIFIED: lambda: preview.show_diff_content(diff, path=entry.path, **kwargs),
+                DiffMode.FULL: lambda: preview.show_full_diff(entry.path, diff, **kwargs),
+                DiffMode.GUTTER: lambda: preview.show_gutter_diff(entry.path, diff, **kwargs),
+            }
+            dispatch[self._diff_mode]()
+            return
 
-        preview.show_file(entry.path, scroll_to_top=scroll_to_top, restore_line=restore_line)
+        preview.show_file(entry.path, **kwargs)
 
     @staticmethod
     def _is_previewable(entry: FileEntry) -> bool:

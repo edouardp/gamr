@@ -114,6 +114,17 @@ class DiffOverview(Static):
 
         self.update(result)
 
+    @staticmethod
+    def _classify_color(has_green: bool, has_red: bool, has_orange: bool) -> str:
+        """Return style string based on which change types are present."""
+        if has_orange or (has_green and has_red):
+            return "#ff8c00"
+        if has_green:
+            return "green"
+        if has_red:
+            return "red"
+        return "dim"
+
     def _render_lines(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
         """Render using ┃/│ line characters."""
         lines_per_row = max(1, total_lines / height)
@@ -121,17 +132,13 @@ class DiffOverview(Static):
         for row in range(height):
             start = int(row * lines_per_row) + 1
             end = int((row + 1) * lines_per_row) + 1
-            has_orange = any(i in orange for i in range(start, end))
-            has_green = any(i in green for i in range(start, end))
-            has_red = any(i in red for i in range(start, end))
-            if has_orange or (has_green and has_red):
-                result.append("┃\n", style="#ff8c00")
-            elif has_green:
-                result.append("┃\n", style="green")
-            elif has_red:
-                result.append("┃\n", style="red")
-            else:
-                result.append("│\n", style="dim")
+            style = self._classify_color(
+                any(i in green for i in range(start, end)),
+                any(i in red for i in range(start, end)),
+                any(i in orange for i in range(start, end)),
+            )
+            char = "┃" if style != "dim" else "│"
+            result.append(char + "\n", style=style)
         return result
 
     def _render_braille(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
@@ -158,17 +165,12 @@ class DiffOverview(Static):
             # Determine color from all lines in this row's range
             row_start = int(row * 4 * lines_per_dot) + 1
             row_end = int((row + 1) * 4 * lines_per_dot) + 1
-            has_orange = any(i in orange for i in range(row_start, row_end))
-            has_green = any(i in green for i in range(row_start, row_end))
-            has_red = any(i in red for i in range(row_start, row_end))
-            if has_orange or (has_green and has_red):
-                result.append(char + "\n", style="#ff8c00")
-            elif has_green:
-                result.append(char + "\n", style="green")
-            elif has_red:
-                result.append(char + "\n", style="red")
-            else:
-                result.append(char + "\n", style="dim")
+            style = self._classify_color(
+                any(i in green for i in range(row_start, row_end)),
+                any(i in red for i in range(row_start, row_end)),
+                any(i in orange for i in range(row_start, row_end)),
+            )
+            result.append(char + "\n", style=style)
 
         return result
 
@@ -179,7 +181,6 @@ class DiffOverview(Static):
         result = Text(no_wrap=True)
         for row in range(height):
             dots = 0
-            style = "dim"
             has_green = False
             has_red = False
             has_orange = False
@@ -194,13 +195,7 @@ class DiffOverview(Static):
                     has_orange = has_orange or line in orange
 
             char = chr(0x2800 + dots)
-            if has_orange or (has_green and has_red):
-                style = "#ff8c00"
-            elif has_green:
-                style = "green"
-            elif has_red:
-                style = "red"
-            result.append(char + "\n", style=style)
+            result.append(char + "\n", style=self._classify_color(has_green, has_red, has_orange))
         return result
 
     def watch_use_braille(self, value: bool) -> None:
@@ -310,6 +305,17 @@ class PreviewPane(Widget):
     }
     """
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._row_to_source: list[int] = []
+        self._change_source_lines: list[int] = []
+        self._rendered_content: Text | None = None
+        self._line_offsets: list[int] | None = None
+        self._last_rendered_path: Path | None = None
+        self._drag_start_row: int | None = None
+        self._drag_current_row: int | None = None
+        self._highlight_timer = None
+
     def compose(self) -> ComposeResult:
         yield PreviewHeader(id="preview-header")
         with Horizontal(id="preview-body"):
@@ -337,7 +343,7 @@ class PreviewPane(Widget):
             return
         scroller = self.query_one("#preview-scroll", VerticalScroll)
         visible_bottom = int(scroller.scroll_y + scroller.size.height)
-        mapping = getattr(self, "_row_to_source", [])
+        mapping = self._row_to_source
         bottom_source = mapping[min(visible_bottom, len(mapping) - 1)] if mapping else 0
         for line in hunks:
             if line > bottom_source:
@@ -351,7 +357,7 @@ class PreviewPane(Widget):
             return
         scroller = self.query_one("#preview-scroll", VerticalScroll)
         visible_top = int(scroller.scroll_y)
-        mapping = getattr(self, "_row_to_source", [])
+        mapping = self._row_to_source
         top_source = mapping[min(visible_top, len(mapping) - 1)] if mapping else 0
         for line in reversed(hunks):
             if line < top_source:
@@ -360,7 +366,7 @@ class PreviewPane(Widget):
 
     def _change_hunk_starts(self) -> list[int]:
         """Return the first line of each contiguous group of changed lines."""
-        lines = getattr(self, "_change_source_lines", [])
+        lines = self._change_source_lines
         if not lines:
             return []
         starts = [lines[0]]
@@ -425,43 +431,13 @@ class PreviewPane(Widget):
 
         total_lines = len(content.splitlines())
         changed_lines, pure_added, has_deletion_after = compute_gutter_markers(diff_text, total_lines)
+        gutter = (changed_lines, pure_added, has_deletion_after)
 
-        if len(content) <= 100 * 1024:
-            lexer = Syntax.guess_lexer(str(path), content)
-            syntax = Syntax(content, lexer=lexer, line_numbers=False, word_wrap=False, theme=self.syntax_theme)
-            highlighted = syntax.highlight(content)
-            hi_lines = highlighted.split(allow_blank=True)
-        else:
-            hi_lines = [Text(line) for line in content.split("\n")]
+        styled, total_lines, _, _ = self._render_highlighted(path, content, gutter_markers=gutter)
 
-        total_lines = len(hi_lines)
-        ln_width = len(str(total_lines))
-        styled = Text(no_wrap=True)
-        row_to_source: list[int] = []
-        has_any_markers = bool(changed_lines or pure_added or has_deletion_after)
-
-        for i, hi_line in enumerate(hi_lines, 1):
-            # Line number
-            styled.append(f"{str(i).rjust(ln_width)} ", style="dim")
-            # Gutter column (only when there are changes)
-            if has_any_markers:
-                if i in changed_lines:
-                    styled.append("●", style="bold #ff8c00")
-                elif i in pure_added:
-                    styled.append("+", style="bold green")
-                elif i in has_deletion_after:
-                    styled.append("_", style="bold red")
-                else:
-                    styled.append(" ")
-            # Content
-            styled.append(" ")
-            styled.append_text(hi_line)
-            styled.append("\n")
-            row_to_source.append(i)
-
-        self._row_to_source = row_to_source
         self._change_source_lines = sorted(changed_lines | pure_added | has_deletion_after)
         overview = self.query_one(DiffOverview)
+        has_any_markers = bool(changed_lines or pure_added or has_deletion_after)
         if has_any_markers:
             overview.set_gutter_map(total_lines, changed_lines, pure_added, has_deletion_after)
             overview.display = True
@@ -561,9 +537,17 @@ class PreviewPane(Widget):
         return raw.decode(errors="replace")
 
     def _render_highlighted(
-        self, path: Path, content: str, diff_text: str | None = None
+        self,
+        path: Path,
+        content: str,
+        diff_text: str | None = None,
+        gutter_markers: tuple[set[int], set[int], set[int]] | None = None,
     ) -> tuple[Text, int, set[int], dict[int, list[str]]]:
-        """Shared renderer: syntax-highlighted file with optional diff markers."""
+        """Shared renderer: syntax-highlighted file with optional diff/gutter markers.
+
+        Args:
+            gutter_markers: (changed_lines, pure_added, has_deletion_after) for gutter mode.
+        """
         diff_data = parse_diff_hunks(diff_text)
         added_lines = diff_data.added_lines
         removed_context = diff_data.removed_context
@@ -605,8 +589,21 @@ class PreviewPane(Widget):
             # Line number
             styled.append(f"{str(i).rjust(ln_width)} ", style="dim")
 
-            # Diff marker + content, or plain content
-            if diff_text and i in added_lines:
+            # Gutter marker column (gutter mode)
+            if gutter_markers:
+                g_changed, g_added, g_deleted = gutter_markers
+                if i in g_changed:
+                    styled.append("●", style="bold #ff8c00")
+                elif i in g_added:
+                    styled.append("+", style="bold green")
+                elif i in g_deleted:
+                    styled.append("_", style="bold red")
+                elif g_changed or g_added or g_deleted:
+                    styled.append(" ")
+                styled.append(" ")
+                styled.append_text(hi_line)
+            # Diff marker + content (full diff mode)
+            elif diff_text and i in added_lines:
                 start = len(styled)
                 styled.append("+ ", style="bold green")
                 styled.append_text(hi_line)
@@ -649,7 +646,7 @@ class PreviewPane(Widget):
         # Stop any animation so we read the final intended position
         scroller.stop_animation("scroll_y")
         row = int(scroller.scroll_y)
-        mapping = getattr(self, "_row_to_source", [])
+        mapping = self._row_to_source
         if not mapping:
             return row + 1
         # Find the first valid source line at or after the scroll position
@@ -665,7 +662,7 @@ class PreviewPane(Widget):
     def scroll_to_source_line(self, source_line: int) -> None:
         """Scroll to the display row corresponding to a source line number."""
         scroller = self.query_one("#preview-scroll", VerticalScroll)
-        mapping = getattr(self, "_row_to_source", [])
+        mapping = self._row_to_source
         if not mapping:
             scroller.scroll_to(0, source_line - 1, animate=False)
             return
@@ -722,7 +719,7 @@ class PreviewPane(Widget):
 
     def _display_row_to_source(self, display_row: int) -> int:
         """Convert a display row index to a source file line number. Returns 0 if invalid."""
-        mapping = getattr(self, "_row_to_source", [])
+        mapping = self._row_to_source
         if not mapping:
             return display_row + 1
         idx = min(display_row, len(mapping) - 1)
@@ -771,7 +768,7 @@ class PreviewPane(Widget):
 
     def on_mouse_move(self, event) -> None:
         """Update selection highlight during drag."""
-        start = getattr(self, "_drag_start_row", None)
+        start = self._drag_start_row
         if start is None or not self.current_path:
             return
         scroller = self.query_one("#preview-scroll", VerticalScroll)
@@ -779,19 +776,19 @@ class PreviewPane(Widget):
         if offset < 0:
             return
         new_row = scroller.scroll_offset.y + offset
-        if new_row != getattr(self, "_drag_current_row", None):
+        if new_row != self._drag_current_row:
             self._drag_current_row = new_row
             # Throttle: schedule highlight update, cancelling any pending one
-            if hasattr(self, "_highlight_timer") and self._highlight_timer:
+            if self._highlight_timer:
                 self._highlight_timer.stop()
             self._highlight_timer = self.set_timer(0.03, self._update_selection_highlight)
 
     def _update_selection_highlight(self) -> None:
         """Re-render content with selection highlight on dragged lines."""
-        start = getattr(self, "_drag_start_row", None)
-        end = getattr(self, "_drag_current_row", None)
-        rendered = getattr(self, "_rendered_content", None)
-        offsets = getattr(self, "_line_offsets", None)
+        start = self._drag_start_row
+        end = self._drag_current_row
+        rendered = self._rendered_content
+        offsets = self._line_offsets
         if start is None or end is None or rendered is None or offsets is None:
             return
         lo, hi = sorted([start, end])
@@ -810,14 +807,14 @@ class PreviewPane(Widget):
 
     def _clear_selection_highlight(self) -> None:
         """Restore original content (remove selection highlight)."""
-        rendered = getattr(self, "_rendered_content", None)
+        rendered = self._rendered_content
         if rendered is not None:
             static = self.query_one("#preview-content", Static)
             static.update(rendered)
 
     def on_mouse_up(self, event) -> None:
         """End drag selection — if dragged across lines, copy file:start-end."""
-        start = getattr(self, "_drag_start_row", None)
+        start = self._drag_start_row
         if start is None or not self.current_path:
             return
         scroller = self.query_one("#preview-scroll", VerticalScroll)
