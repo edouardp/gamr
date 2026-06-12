@@ -60,7 +60,7 @@ async def test_ctrl_f_focuses_search_input(tree_repo: Path) -> None:
 
         ┌─ Filter Bar ─────────────────────┐
         │ 🔍 Filter files...  ← focus here │
-        └──────────────────────────────────-┘
+        └──────────────────────────────────┘
     """
     app = GamrApp(path=tree_repo)
     async with app.run_test() as pilot:

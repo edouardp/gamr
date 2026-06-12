@@ -74,6 +74,7 @@ class GamrApp(App):
         Binding("g", "toggle_modified", "Git modified", show=True, priority=True),
         Binding("o", "cycle_overview", "Overview mode", show=True, priority=True),
         Binding("e", "open_editor", "Editor", show=True, priority=True),
+        Binding("escape", "unfocus_filter", show=False, priority=True),
         # App lifecycle
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
@@ -492,6 +493,11 @@ class GamrApp(App):
 
     def action_focus_filter(self) -> None:
         self.query_one("#search-input").focus()
+
+    def action_unfocus_filter(self) -> None:
+        """Return focus to tree when escape pressed in search input."""
+        if self.query_one("#search-input").has_focus:
+            self.query_one(FileTreeTable).focus()
 
     def action_toggle_follow(self) -> None:
         """Toggle follow mode — auto-select last changed file on watch events."""
