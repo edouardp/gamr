@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.10 (2026-06-12)
+
+  - Diff overview: bitmap-based rendering, contiguous changes always contiguous
+  - Diff overview: 4 density modes + off (`o` to cycle), configurable in preferences
+  - Diff overview: display-row coloring in full diff mode (matches preview colors)
+  - Diff parser: block-based grouping (fixes repeated removed lines in full diff)
+  - Git filter (`g`): now shows all files in `git status` (modified, added, deleted, untracked, staged)
+  - Deleted files shown with strikethrough dim red filename
+  - `e` opens `$VISUAL`/`$EDITOR` at current scroll position
+  - Tree always rebuilds from entries on expand (no stale nodes)
+  - Cursor preserved after file watcher rebuild
+  - Overview styles and scaling configurable in preferences.toml
+  - XDG_STATE_HOME for state, XDG_CONFIG_HOME for config (with legacy fallback)
+  - Comprehensive UI_DESIGN.md rewrite
+
+
 ## 0.1.9 (2026-06-12)
 
   - Fixed PyPI package missing long description (README now included in build)
