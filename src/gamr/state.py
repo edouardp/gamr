@@ -63,6 +63,7 @@ class AppState:
     spaced_paths: bool = True
     gradient_colors: bool = True
     use_braille: bool = False
+    use_quadrant: bool = False
     use_sextant: bool = False
     collapsed_dirs: set[str] = field(default_factory=set)
     split_fraction: float = 0.5
@@ -130,6 +131,7 @@ class AppState:
             "spaced_paths": self.spaced_paths,
             "gradient_colors": self.gradient_colors,
             "use_braille": self.use_braille,
+            "use_quadrant": self.use_quadrant,
             "use_sextant": self.use_sextant,
             "collapsed_dirs": sorted(self.collapsed_dirs),
             "split_fraction": self.split_fraction,
@@ -180,6 +182,7 @@ class AppState:
             spaced_paths = _read_bool(data, "spaced_paths", True)
             gradient_colors = _read_bool(data, "gradient_colors", True)
             use_braille = _read_bool(data, "use_braille", False)
+            use_quadrant = _read_bool(data, "use_quadrant", False)
             use_sextant = _read_bool(data, "use_sextant", False)
         except (TypeError, ValueError):
             return None
@@ -197,6 +200,7 @@ class AppState:
             spaced_paths=spaced_paths,
             gradient_colors=gradient_colors,
             use_braille=use_braille,
+            use_quadrant=use_quadrant,
             use_sextant=use_sextant,
             collapsed_dirs=collapsed_dirs,
             split_fraction=max(0.1, min(0.9, split_fraction)),

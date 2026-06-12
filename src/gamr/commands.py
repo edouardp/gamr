@@ -29,9 +29,9 @@ class GamrCommands(Provider):
                 "Color-code modification times by recency",
             ),
             (
-                "Cycle diff overview style (line/braille/sextant)",
+                "Cycle diff overview style (line/quadrant/sextant/braille)",
                 self._cycle_overview_style,
-                "Cycle between line, braille, and sextant overview bar",
+                "Cycle between line, quadrant, sextant, and braille overview bar",
             ),
         ]
         for label, callback, help_text in commands:
@@ -49,14 +49,17 @@ class GamrCommands(Provider):
 
     def _cycle_overview_style(self) -> None:
         overview = self.app.query_one(DiffOverview)
-        if overview.use_sextant:
-            # sextant → line
+        if overview.use_braille:
+            # braille → line
+            overview.use_braille = False
+        elif overview.use_sextant:
+            # sextant → braille
             overview.use_sextant = False
-            overview.use_braille = False
-        elif overview.use_braille:
-            # braille → sextant
-            overview.use_braille = False
+            overview.use_braille = True
+        elif overview.use_quadrant:
+            # quadrant → sextant
+            overview.use_quadrant = False
             overview.use_sextant = True
         else:
-            # line → braille
-            overview.use_braille = True
+            # line → quadrant
+            overview.use_quadrant = True

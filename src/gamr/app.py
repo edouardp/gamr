@@ -119,6 +119,7 @@ class GamrApp(App):
         split = self.query_one(HorizontalSplit)
         self._state.apply_to_widgets(tree, filter_bar, split)
         self.query_one(PreviewPane).query_one(DiffOverview).use_braille = self._state.use_braille
+        self.query_one(PreviewPane).query_one(DiffOverview).use_quadrant = self._state.use_quadrant
         self.query_one(PreviewPane).query_one(DiffOverview).use_sextant = self._state.use_sextant
         filtered = self._apply_filters(filter_bar.active_statuses, filter_bar.search_query)
         tree.load_entries(
@@ -572,6 +573,7 @@ class GamrApp(App):
         )
         overview = self.query_one(PreviewPane).query_one(DiffOverview)
         self._state.use_braille = overview.use_braille
+        self._state.use_quadrant = overview.use_quadrant
         self._state.use_sextant = overview.use_sextant
         self._state.save()
 

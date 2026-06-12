@@ -63,6 +63,7 @@ class DiffOverview(Static):
     """
 
     use_braille: reactive[bool] = reactive(False)
+    use_quadrant: reactive[bool] = reactive(False)
     use_sextant: reactive[bool] = reactive(False)
 
     def set_diff_map(self, total_lines: int, added: set[int], removed: dict[int, list[str]]) -> None:
@@ -112,6 +113,8 @@ class DiffOverview(Static):
             result = self._render_sextant(total_lines, height, green, red, orange)
         elif self.use_braille:
             result = self._render_braille(total_lines, height, green, red, orange)
+        elif self.use_quadrant:
+            result = self._render_quadrant(total_lines, height, green, red, orange)
         else:
             result = self._render_lines(total_lines, height, green, red, orange)
 
@@ -129,115 +132,101 @@ class DiffOverview(Static):
         return "dim"
 
     def _render_lines(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
-        """Render using ┃/│ line characters."""
-        lines_per_row = max(1, total_lines / height)
-        result = Text(no_wrap=True)
-        for row in range(height):
-            start = int(row * lines_per_row) + 1
-            end = int((row + 1) * lines_per_row) + 1
-            style = self._classify_color(
-                any(i in green for i in range(start, end)),
-                any(i in red for i in range(start, end)),
-                any(i in orange for i in range(start, end)),
-            )
-            char = "┃" if style != "dim" else "│"
-            result.append(char + "\n", style=style)
-        return result
+        """Render using ┃/│ line characters (1 line per row)."""
+        return self._render_subcell(total_lines, height, green, red, orange, slots_per_row=1, char_fn=self._char_line)
 
-    def _render_braille(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
-        """Render using braille characters (4 source lines per row via 2x2 dot grid)."""
-        rows_available = height
-        # When content fits on screen (total_lines <= height), use 1:1 mapping
-        # so each braille row maps to exactly 4 source lines without scaling.
-        if total_lines <= rows_available:
-            return self._render_braille_1to1(total_lines, rows_available, green, red, orange)
-
-        lines_per_dot = total_lines / (rows_available * 4)
-        result = Text(no_wrap=True)
-
-        for row in range(rows_available):
-            dots = 0
-            for dot in range(4):
-                dot_start = int((row * 4 + dot) * lines_per_dot) + 1
-                dot_end = int((row * 4 + dot + 1) * lines_per_dot) + 1
-                if any(i in green or i in red or i in orange for i in range(dot_start, dot_end)):
-                    dots |= [0x01, 0x02, 0x04, 0x40][dot]
-
-            char = chr(0x2800 + dots)
-
-            # Determine color from all lines in this row's range
-            row_start = int(row * 4 * lines_per_dot) + 1
-            row_end = int((row + 1) * 4 * lines_per_dot) + 1
-            style = self._classify_color(
-                any(i in green for i in range(row_start, row_end)),
-                any(i in red for i in range(row_start, row_end)),
-                any(i in orange for i in range(row_start, row_end)),
-            )
-            result.append(char + "\n", style=style)
-
-        return result
-
-    def _render_braille_1to1(
-        self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]
-    ) -> Text:
-        """Render braille with 1:1 dot-to-line mapping when content fits in available rows."""
-        result = Text(no_wrap=True)
-        for row in range(height):
-            dots = 0
-            has_green = False
-            has_red = False
-            has_orange = False
-            for dot in range(4):
-                line = row * 4 + dot + 1
-                if line > total_lines:
-                    break
-                if line in green or line in red or line in orange:
-                    dots |= [0x01, 0x02, 0x04, 0x40][dot]
-                    has_green = has_green or line in green
-                    has_red = has_red or line in red
-                    has_orange = has_orange or line in orange
-
-            char = chr(0x2800 + dots)
-            result.append(char + "\n", style=self._classify_color(has_green, has_red, has_orange))
-        return result
+    def _render_quadrant(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
+        """Render using lower-half block characters (2 lines per row)."""
+        return self._render_subcell(
+            total_lines, height, green, red, orange, slots_per_row=2, char_fn=self._char_quadrant
+        )
 
     def _render_sextant(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
-        """Render using sextant characters (3 source lines per row, right column only).
+        """Render using sextant right-column characters (3 lines per row)."""
+        return self._render_subcell(
+            total_lines, height, green, red, orange, slots_per_row=3, char_fn=self._char_sextant
+        )
 
-        Sextants (U+1FB00–U+1FB3B) use a 2×3 grid. We use the right column
-        (bits 1, 3, 5) for a slim, visually clean overview.
-        """
-        # Right column bit positions: top-right=1, mid-right=3, bot-right=5
-        _RIGHT_BITS = [1, 3, 5]
-        lines_per_slot = total_lines / (height * 3)
+    def _render_braille(self, total_lines: int, height: int, green: set[int], red: set[int], orange: set[int]) -> Text:
+        """Render using braille left-column characters (4 lines per row)."""
+        return self._render_subcell(
+            total_lines, height, green, red, orange, slots_per_row=4, char_fn=self._char_braille
+        )
+
+    def _render_subcell(
+        self,
+        total_lines: int,
+        height: int,
+        green: set[int],
+        red: set[int],
+        orange: set[int],
+        *,
+        slots_per_row: int,
+        char_fn,
+    ) -> Text:
+        """Generic sub-cell renderer. Divides file into slots_per_row subdivisions per terminal row."""
+        lines_per_slot = total_lines / (height * slots_per_row)
+        all_changes = green | red | orange
         result = Text(no_wrap=True)
 
         for row in range(height):
-            bits = 0
+            slot_hits = []
             has_green = False
             has_red = False
             has_orange = False
-            for slot in range(3):
-                slot_start = int((row * 3 + slot) * lines_per_slot) + 1
-                slot_end = int((row * 3 + slot + 1) * lines_per_slot) + 1
-                slot_has = any(i in green or i in red or i in orange for i in range(slot_start, slot_end))
-                if slot_has:
-                    bits |= 1 << _RIGHT_BITS[slot]
+            for slot in range(slots_per_row):
+                slot_start = int((row * slots_per_row + slot) * lines_per_slot) + 1
+                slot_end = int((row * slots_per_row + slot + 1) * lines_per_slot) + 1
+                hit = any(i in all_changes for i in range(slot_start, slot_end))
+                slot_hits.append(hit)
+                if hit:
                     has_green = has_green or any(i in green for i in range(slot_start, slot_end))
                     has_red = has_red or any(i in red for i in range(slot_start, slot_end))
                     has_orange = has_orange or any(i in orange for i in range(slot_start, slot_end))
 
-            if bits == 0:
-                char = " "
-            else:
-                char = chr(0x1FB00 + bits - 1)
-
+            char = char_fn(slot_hits)
             style = self._classify_color(has_green, has_red, has_orange)
             result.append(char + "\n", style=style)
 
         return result
 
+    @staticmethod
+    def _char_line(slots: list[bool]) -> str:
+        return "┃" if slots[0] else "│"
+
+    @staticmethod
+    def _char_quadrant(slots: list[bool]) -> str:
+        # Upper half = slots[0], lower half = slots[1]
+        # ▀ = upper, ▄ = lower, █ = both, ' ' = neither
+        top, bot = slots
+        if top and bot:
+            return "█"
+        if top:
+            return "▀"
+        if bot:
+            return "▄"
+        return " "
+
+    @staticmethod
+    def _char_braille(slots: list[bool]) -> str:
+        # Left column dots: positions 0,1,2,6 in braille encoding
+        _BITS = [0x01, 0x02, 0x04, 0x40]
+        dots = sum(b for hit, b in zip(slots, _BITS, strict=True) if hit)
+        return chr(0x2800 + dots)
+
+    @staticmethod
+    def _char_sextant(slots: list[bool]) -> str:
+        # Right column of sextant: bit positions 1, 3, 5
+        _BITS = [1, 3, 5]
+        bits = sum(1 << b for hit, b in zip(slots, _BITS, strict=True) if hit)
+        if bits == 0:
+            return " "
+        return chr(0x1FB00 + bits - 1)
+
     def watch_use_braille(self, value: bool) -> None:
+        self._render_overview()
+
+    def watch_use_quadrant(self, value: bool) -> None:
         self._render_overview()
 
     def watch_use_sextant(self, value: bool) -> None:

@@ -148,30 +148,30 @@ class TestRenderBrailleGutterMode:
 
 
 class TestBraille1to1WhenContentFits:
-    """Regression: braille dots must pack 4 source lines per row when total_lines <= height."""
+    """Braille scales file to fill available height (4 slots per row)."""
 
     def setup_method(self):
         self.overview = DiffOverview()
 
-    def test_change_at_line_10_appears_at_correct_row(self):
-        """With 15 lines in 40 rows, line 10 should appear at row 2 (lines 9-12)."""
+    def test_change_at_line_10_appears_in_correct_region(self):
+        """With 15 lines in 40 rows, line 10 should appear proportionally positioned."""
         result = self.overview._render_braille(15, 40, green={10}, red=set(), orange=set())
-        # Line 10 is in row 2 (0-indexed): row covers lines 9,10,11,12
-        assert "green" in _style_at(result, 2)
-        # Row before (lines 5-8) should be dim
-        assert "dim" in _style_at(result, 1)
+        # Line 10/15 scaled across 40 rows ≈ row 26
+        # Find which row has the green style
+        green_rows = [r for r in range(40) if "green" in _style_at(result, r)]
+        assert len(green_rows) == 1
+        assert green_rows[0] > 20  # should be in the lower portion
 
-    def test_change_at_last_line_not_clustered_at_top(self):
-        """Line 20 in a 20-line file with 30 rows should be at row 4 (lines 17-20)."""
+    def test_change_at_last_line_near_bottom(self):
+        """Line 20 in a 20-line file with 30 rows should appear near the bottom."""
         result = self.overview._render_braille(20, 30, green=set(), red={20}, orange=set())
-        # Line 20 is in row 4 (0-indexed): row covers lines 17,18,19,20
-        assert "red" in _style_at(result, 4)
-        # Top row (lines 1-4) should be dim if no changes there
+        red_rows = [r for r in range(30) if "red" in _style_at(result, r)]
+        assert len(red_rows) >= 1
+        assert red_rows[0] >= 25  # last line should be near bottom
         assert "dim" in _style_at(result, 0)
 
     def test_fills_available_height(self):
         """Braille overview should fill all available rows for files longer than height."""
-        # 178 lines in 80 rows - scaled mode should use all 80 rows
         result = self.overview._render_braille(178, 80, green={178}, red=set(), orange=set())
         lines = result.plain.split("\n")
         assert len([line for line in lines if line]) == 80
