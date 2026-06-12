@@ -12,7 +12,6 @@
   - Fixed private method access across class boundaries
   - Renamed FilterBar → Toolbar throughout codebase
 
-
 ## 0.1.10 (2026-06-12)
 
   - Diff overview: bitmap-based rendering, contiguous changes always contiguous
