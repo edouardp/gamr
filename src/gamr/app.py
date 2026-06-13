@@ -39,6 +39,7 @@ from gamr.services.filter import filter_by_status, fuzzy_filter
 from gamr.services.git_provider import DulwichGitProvider, NullGitProvider
 from gamr.state import AppState
 from gamr.widgets.file_tree_table import FileTreeTable
+from gamr.widgets.help import HelpScreen
 from gamr.widgets.preview_pane import DiffOverview, PreviewPane
 from gamr.widgets.side_by_side import SideBySideDiffScreen
 from gamr.widgets.split import HorizontalSplit, SplitHandle
@@ -61,6 +62,7 @@ class GamrApp(App):
         # Modes
         Binding("f", "toggle_follow", "Follow", show=True, priority=True),
         Binding("v", "cycle_view", "View mode", show=True, priority=True),
+        Binding("V", "cycle_view_reverse", show=False, priority=True),
         Binding("d", "toggle_diff", "Diff mode", show=True, priority=True),
         Binding("D", "toggle_diff_reverse", show=False, priority=True),
         # Columns
@@ -81,6 +83,7 @@ class GamrApp(App):
         Binding("escape", "unfocus_filter", show=False, priority=True),
         # App lifecycle
         Binding("q", "quit", "Quit", show=True, priority=True),
+        Binding("question_mark", "show_help", "Help", show=False, priority=True),
     ]
 
     # -------------------------------------------------------------------------
@@ -613,6 +616,9 @@ class GamrApp(App):
     def action_cycle_view(self) -> None:
         self.query_one(FileTreeTable).action_cycle_view()
 
+    def action_cycle_view_reverse(self) -> None:
+        self.query_one(FileTreeTable).action_cycle_view_reverse()
+
     def action_toggle_modified(self) -> None:
         self.query_one(Toolbar).toggle_modified()
 
@@ -627,6 +633,13 @@ class GamrApp(App):
             screen.dismiss(screen._get_current_source_line())
         else:
             screen.dismiss()
+
+    def action_show_help(self) -> None:
+        """Show keyboard shortcuts popup."""
+        if self._has_modal():
+            self._dismiss_modal()
+            return
+        self.push_screen(HelpScreen())
 
     def action_side_by_side(self) -> None:
         """Show side-by-side diff in a modal popup."""

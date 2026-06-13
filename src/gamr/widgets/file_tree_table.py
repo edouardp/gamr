@@ -329,6 +329,12 @@ class FileTreeTable(DataTable):
         idx = modes.index(self.view_mode)
         self.view_mode = modes[(idx + 1) % len(modes)]
 
+    def action_cycle_view_reverse(self) -> None:
+        """Cycle through view modes in reverse."""
+        modes = list(ViewMode)
+        idx = modes.index(self.view_mode)
+        self.view_mode = modes[(idx - 1) % len(modes)]
+
     # --- Event handlers ---
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
