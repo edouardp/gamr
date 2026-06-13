@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 (2026-06-14)
+
+  - Side-by-side diff modal (`s`): full old/new file view with aligned padding
+  - Syntax highlighting in side-by-side (Monokai theme, both panels)
+  - Character-level inline diff highlighting (brighter background on changed chars)
+  - Three-color scheme: orange (changed), green (added), red (removed), grey (padding gaps)
+  - Diff overview bar in side-by-side modal
+  - Live refresh: side-by-side updates when file changes on disk
+  - Scroll position syncs between preview pane and side-by-side modal (both directions)
+  - Native scroll handling in modal (keyboard, mouse wheel, scrollbar drag)
+  - `gamr.sh` launcher: renamed GAMR_DIR to TARGET_DIR, accepts optional directory argument
+  - ADR-029: side-by-side diff modal
+
 ## 0.1.13 (2026-06-12)
 
   - Cross-platform fixes for Windows, BSD, and Linux
