@@ -16,7 +16,7 @@ HELP_TEXT = """\
   [cyan]tab[/]            Switch focus between tree and preview
 
 [bold]View & Diff[/]
-  [cyan]v[/]              Cycle view mode (tree → flat name → flat path)
+  [cyan]v / V[/]          Cycle view mode forward / reverse
   [cyan]d / D[/]          Cycle diff mode forward / reverse
   [cyan]s[/]              Side-by-side diff popup
   [cyan]o[/]              Cycle diff overview style

@@ -28,6 +28,7 @@
 - **State persistence** — view mode, columns, collapsed dirs, selection, filters saved between sessions
 - **Preferences file** — `~/.config/gamr/preferences.toml` for user defaults (e.g., diff mode cycle)
 - **Graceful degradation** — works on non-git directories (hides git UI)
+- **Keyboard shortcuts help** — `?` shows all keybindings in a popup
 
 ## Install
 
@@ -48,6 +49,7 @@ uv run gamr [path]
 | `←`      | Collapse directory (or parent if on file)            |
 | `space`  | Toggle expand/collapse (tree) or page down (preview) |
 | `v`      | Cycle view mode (tree → flat name → flat path)       |
+| `V`      | Cycle view mode reverse                              |
 | `d`      | Cycle diff mode (full → gutter → unified)            |
 | `D`      | Cycle diff mode reverse                              |
 | `s`      | Side-by-side diff popup                              |
@@ -62,6 +64,7 @@ uv run gamr [path]
 | `O`      | Open file in default app (macOS)                     |
 | `tab`    | Switch focus between tree and preview                |
 | `ctrl+p` | Command palette (spaced paths, gradient toggle)      |
+| `?`      | Show keyboard shortcuts help                         |
 | `q`      | Quit (saves state)                                   |
 
 Column headers are clickable to sort (ascending → descending → none).
@@ -89,6 +92,7 @@ src/gamr/
     ├── toolbar.py          # Toolbar (logo + search input)
     ├── preview_pane.py     # Syntax highlighting + diff view
     ├── side_by_side.py     # Side-by-side diff modal
+    ├── help.py             # Keyboard shortcuts help modal
     └── split.py            # Resizable horizontal split
 ```
 

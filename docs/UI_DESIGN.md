@@ -31,6 +31,7 @@
 ## View Modes
 
 - **v** — Cycle through: tree → flat name → flat path
+- **V** (shift) — Cycle view mode in reverse
 - **Tree** — Hierarchical with expand/collapse, dirs with ▶/▼ twisties
 - **Flat name** — Leaf filenames only, no paths, no hierarchy
 - **Flat path** — Relative paths (e.g., `src / worker / foo.py`)
@@ -253,3 +254,11 @@
 - Orange marks for changed rows, green for added, red for removed
 - Scales proportionally to the widget height
 - Re-renders on resize
+
+## Help Popup (?)
+
+- **?** — Show keyboard shortcuts help modal (works from any focus)
+- **?** or **escape** — Dismiss the help modal
+- Content-sized dialog: expands to exactly fit the shortcut list
+- Styled with Rich markup: bold section headers, cyan key names
+- When the help modal is active, other app keybindings do not fire
