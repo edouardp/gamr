@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-06-14)
+
+  - Fix double-width unicode (emoji, CJK) misaligning the side-by-side divider
+  - Add `J`/`n` and `K`/`N` hunk jumping in side-by-side modal (matches preview pane)
+  - `j`/`k` scroll in side-by-side now handled directly (fixes unresponsive keys)
+
 ## 0.2.0 (2026-06-14)
 
   - Side-by-side diff modal (`s`): full old/new file view with aligned padding
