@@ -70,6 +70,7 @@ class AppState:
     collapsed_dirs: set[str] = field(default_factory=set)
     split_fraction: float = 0.5
     selected_path: str | None = None
+    scroll_line: int = 0
     active_filter_ids: set[str] = field(default_factory=set)
     search_query: str = ""
 
@@ -139,6 +140,7 @@ class AppState:
             "collapsed_dirs": sorted(self.collapsed_dirs),
             "split_fraction": self.split_fraction,
             "selected_path": self.selected_path,
+            "scroll_line": self.scroll_line,
             "active_filters": sorted(self.active_filter_ids),
             "search_query": self.search_query,
         }
@@ -172,6 +174,7 @@ class AppState:
             if not math.isfinite(split_fraction):
                 raise ValueError
             selected_path = data.get("selected_path")
+            scroll_line = int(data.get("scroll_line", 0))
             search_query = data.get("search_query", "")
             if selected_path is not None and not isinstance(selected_path, str):
                 raise TypeError
@@ -211,6 +214,7 @@ class AppState:
             collapsed_dirs=collapsed_dirs,
             split_fraction=max(0.1, min(0.9, split_fraction)),
             selected_path=selected_path,
+            scroll_line=scroll_line,
             active_filter_ids=active_filter_ids,
             search_query=search_query,
         )

@@ -137,6 +137,8 @@ class GamrApp(App):
         )
         if self._state.selected_path:
             tree.restore_cursor(Path(self._state.selected_path))
+            if self._state.scroll_line > 1:
+                self._scroll_positions[Path(self._state.selected_path)] = self._state.scroll_line
 
         # --- Start background services ---
         self._scanner.start_watching(git_root=self._git.git_dir if self._git.is_git_repo() else None)
@@ -736,7 +738,9 @@ class GamrApp(App):
             diff_mode=self._diff_mode,
             selected_path=entry.path if entry else None,
         )
-        overview = self.query_one(PreviewPane).query_one(DiffOverview)
+        preview = self.query_one(PreviewPane)
+        self._state.scroll_line = preview.get_source_line_at_scroll()
+        overview = preview.query_one(DiffOverview)
         self._state.use_braille = overview.use_braille
         self._state.use_quadrant = overview.use_quadrant
         self._state.use_sextant = overview.use_sextant
