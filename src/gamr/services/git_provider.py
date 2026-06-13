@@ -38,6 +38,9 @@ class GitProvider(ABC):
     def get_diff(self, path: Path) -> str: ...
 
     @abstractmethod
+    def get_old_content(self, path: Path) -> str: ...
+
+    @abstractmethod
     def get_file_stats(self, path: Path) -> FileStats | None: ...
 
     @abstractmethod
@@ -139,6 +142,21 @@ class DulwichGitProvider(GitProvider):
             tofile=f"b/{path.name}",
         )
         return "".join(diff_lines)
+
+    def get_old_content(self, path: Path) -> str:
+        """Return the HEAD version of a file as a string."""
+        if not self._repo:
+            return ""
+        rel = path.relative_to(self.repo_root).as_posix().encode()
+        try:
+            head = self._repo[self._repo.head()]
+            tree = self._repo[head.tree]
+        except Exception:
+            return ""
+        old_blob = self._lookup_blob(tree, rel)
+        if not old_blob:
+            return ""
+        return old_blob.decode(errors="replace")
 
     def get_file_stats(self, path: Path) -> FileStats | None:
         """Compute lines added/removed for a file vs HEAD."""
@@ -261,6 +279,9 @@ class NullGitProvider(GitProvider):
         return {}
 
     def get_diff(self, path: Path) -> str:
+        return ""
+
+    def get_old_content(self, path: Path) -> str:
         return ""
 
     def get_file_stats(self, path: Path) -> FileStats | None:

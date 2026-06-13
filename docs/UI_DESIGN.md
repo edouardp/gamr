@@ -209,3 +209,47 @@
 - Toggle spaced paths
 - Toggle gradient colors
 - Cycle diff overview style (line/quadrant/sextant/braille/off)
+
+## Side-by-Side Diff (s)
+
+- **s** — Open side-by-side diff modal for the currently selected file (requires git-modified file)
+- **s** / **q** / **escape** — Close the modal (does not quit the app)
+- Modal covers 95% of the screen with a mid-grey border
+- Left panel: old file (HEAD version), right panel: new file (working copy)
+- Both panels show the full file with syntax highlighting (Monokai)
+- Aligned padding: blank lines inserted on the shorter side to keep rows aligned
+
+### Color Scheme
+
+- **Orange background** (`#3d2b00`) — changed lines (old paired with new), both sides
+- **Brighter orange** (`#664400`) — character-level differences within changed lines
+- **Green background** (`#003300`) — pure additions (right side only, blank padding left)
+- **Red background** (`#330000`) — pure deletions (left side only, blank padding right)
+- **Grey background** (`#1a1a1a`) — padding/gap lines on the opposite panel
+
+### Alignment Rules
+
+- Lines are paired 1:1 from each remove/add block as "changed"
+- Excess added lines (e.g., 1 old → 4 new): first paired as changed, remaining 3 as added with grey padding on left
+- Excess removed lines: shown as removed with grey padding on right
+- Context lines (unchanged) appear on both sides at their respective line numbers
+
+### Scroll Behavior
+
+- Single scrollable container (no sync issues — both columns in one `VerticalScroll`)
+- Opens at the same scroll position as the preview pane
+- On close, restores the preview pane scroll to match the modal's position
+- Native scroll: keyboard (j/k/arrows/space/pgup/pgdn), mouse wheel, scrollbar drag all work directly
+
+### Live Refresh
+
+- When the file changes on disk while the modal is open, the view re-renders automatically
+- Scroll position is preserved across refreshes
+- If the file is reverted (no more diff), the modal auto-dismisses
+
+### Diff Overview Bar
+
+- 1-column bar on the right edge of the modal
+- Orange marks for changed rows, green for added, red for removed
+- Scales proportionally to the widget height
+- Re-renders on resize

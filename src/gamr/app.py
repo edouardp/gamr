@@ -40,6 +40,7 @@ from gamr.services.git_provider import DulwichGitProvider, NullGitProvider
 from gamr.state import AppState
 from gamr.widgets.file_tree_table import FileTreeTable
 from gamr.widgets.preview_pane import DiffOverview, PreviewPane
+from gamr.widgets.side_by_side import SideBySideDiffScreen
 from gamr.widgets.split import HorizontalSplit, SplitHandle
 from gamr.widgets.toolbar import Toolbar
 
@@ -74,6 +75,7 @@ class GamrApp(App):
         # Filters
         Binding("g", "toggle_modified", "Git modified", show=True, priority=True),
         Binding("o", "cycle_overview", "Overview mode", show=True, priority=True),
+        Binding("s", "side_by_side", "Side-by-side", show=True, priority=True),
         Binding("e", "open_editor", "Editor", show=True, priority=True),
         Binding("O", "open_macos", show=False, priority=True),
         Binding("escape", "unfocus_filter", show=False, priority=True),
@@ -255,8 +257,27 @@ class GamrApp(App):
             source_line = preview.get_source_line_at_scroll()
             preview.invalidate()
             self._show_preview_for(entry, scroll_to_top=False, restore_line=source_line)
+            # Refresh side-by-side modal if open
+            if self._has_modal():
+                self._refresh_side_by_side(entry)
         if entry:
             self._previewed_git_status = entry.git_status
+
+    def _refresh_side_by_side(self, entry: FileEntry) -> None:
+        """Refresh the side-by-side modal with updated file content."""
+        screen = self.screen
+        if not isinstance(screen, SideBySideDiffScreen):
+            return
+        diff = self._git.get_diff(entry.path)
+        if not diff:
+            screen.dismiss()
+            return
+        old_content = self._git.get_old_content(entry.path)
+        try:
+            new_content = entry.path.read_text(errors="replace")
+        except OSError:
+            new_content = ""
+        screen.refresh_content(diff, old_content, new_content)
 
     def _handle_follow_mode(self, changed_paths: list[Path] | None, tree: FileTreeTable) -> None:
         """In follow mode, jump cursor to the last changed file."""
@@ -520,7 +541,10 @@ class GamrApp(App):
         self.query_one(Toolbar).show_search()
 
     def action_unfocus_filter(self) -> None:
-        """Return focus to tree when escape pressed in search input."""
+        """Return focus to tree when escape pressed, or dismiss modal."""
+        if self._has_modal():
+            self._dismiss_modal()
+            return
         if self.query_one("#search-input").has_focus:
             self.query_one(Toolbar).hide_search()
             self.query_one(FileTreeTable).focus()
@@ -589,6 +613,48 @@ class GamrApp(App):
 
     def action_toggle_modified(self) -> None:
         self.query_one(Toolbar).toggle_modified()
+
+    def _has_modal(self) -> bool:
+        """Return True if a modal screen is currently displayed."""
+        return len(self.screen_stack) > 1
+
+    def _dismiss_modal(self) -> None:
+        """Dismiss the topmost modal screen."""
+        screen = self.screen
+        if isinstance(screen, SideBySideDiffScreen):
+            screen.dismiss(screen._get_current_source_line())
+        else:
+            screen.dismiss()
+
+    def action_side_by_side(self) -> None:
+        """Show side-by-side diff in a modal popup."""
+        if self._has_modal():
+            self._dismiss_modal()
+            return
+        tree = self.query_one(FileTreeTable)
+        entry = tree.get_current_entry()
+        if not entry or not entry.git_status or not self._git.is_git_repo():
+            return
+        diff = self._git.get_diff(entry.path)
+        if not diff:
+            return
+        old_content = self._git.get_old_content(entry.path)
+        try:
+            new_content = entry.path.read_text(errors="replace")
+        except OSError:
+            new_content = ""
+        preview = self.query_one(PreviewPane)
+        source_line = preview.get_source_line_at_scroll()
+        self.push_screen(
+            SideBySideDiffScreen(entry.path.name, diff, old_content, new_content, scroll_to=source_line),
+            callback=self._on_side_by_side_dismiss,
+        )
+
+    def _on_side_by_side_dismiss(self, source_line: int) -> None:
+        """Restore preview scroll position to match where the side-by-side was scrolled."""
+        if source_line and source_line > 1:
+            preview = self.query_one(PreviewPane)
+            preview.scroll_to_source_line(source_line)
 
     def action_open_editor(self) -> None:
         """Open the previewed file in $EDITOR at the current scroll position."""
@@ -678,6 +744,9 @@ class GamrApp(App):
 
     def action_quit(self) -> None:
         """Save state and exit."""
+        if self._has_modal():
+            self._dismiss_modal()
+            return
         self._save_state()
         self.exit()
 

@@ -19,6 +19,7 @@
 - **Syntax-highlighted preview** — Monokai theme, scrollable, line numbers
 - **Copy file references** — double-click or drag lines to copy `path:line` to clipboard
 - **Full file diff** — syntax highlighting with inline +/- markers and colored backgrounds
+- **Side-by-side diff** — modal popup (`s`) showing old/new files aligned with syntax highlighting, character-level change highlighting, and live refresh
 - **Diff overview bar** — 1-column change map with 4 density modes (`o` to cycle: line, quadrant, sextant, braille)
 - **Gradient colors** — size, modification time, and git blame time columns colored by relative magnitude
 - **File icons** — loads from `~/.config/lsd/icons.yaml` if present
@@ -49,6 +50,7 @@ uv run gamr [path]
 | `v`      | Cycle view mode (tree → flat name → flat path)       |
 | `d`      | Cycle diff mode (full → gutter → unified)            |
 | `D`      | Cycle diff mode reverse                              |
+| `s`      | Side-by-side diff popup                              |
 | `J`/`n`  | Jump to next diff hunk (preview)                     |
 | `K`/`N`  | Jump to previous diff hunk (preview)                 |
 | `o`      | Cycle diff overview style                            |
@@ -86,6 +88,7 @@ src/gamr/
     ├── tree_data.py        # Tree building and sorting logic
     ├── toolbar.py          # Toolbar (logo + search input)
     ├── preview_pane.py     # Syntax highlighting + diff view
+    ├── side_by_side.py     # Side-by-side diff modal
     └── split.py            # Resizable horizontal split
 ```
 
@@ -105,4 +108,4 @@ uv run pytest
 ## Documentation
 
 - [UI Design Rules](docs/UI_DESIGN.md) — all interaction behaviors and edge cases
-- [Architecture Decision Records](docs/adrs/README.md) — 28 ADRs covering all design choices
+- [Architecture Decision Records](docs/adrs/README.md) — 29 ADRs covering all design choices
