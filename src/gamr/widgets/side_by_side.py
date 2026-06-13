@@ -5,6 +5,7 @@ from __future__ import annotations
 import difflib
 import re
 
+from rich.cells import cell_len
 from rich.syntax import Syntax
 from rich.text import Text
 from textual.app import ComposeResult
@@ -29,9 +30,24 @@ class SideBySideDiffScreen(ModalScreen[int]):
             event.stop()
             event.prevent_default()
             self.dismiss(self._get_current_source_line())
-        elif key in ("j", "k", "up", "down", "space", "pageup", "pagedown"):
-            # Let these pass through to the focused VerticalScroll
-            pass
+        elif key in ("j", "down"):
+            event.stop()
+            self.query_one("#sbs-scroll", VerticalScroll).scroll_down()
+        elif key in ("k", "up"):
+            event.stop()
+            self.query_one("#sbs-scroll", VerticalScroll).scroll_up()
+        elif key in ("space", "pagedown"):
+            event.stop()
+            self.query_one("#sbs-scroll", VerticalScroll).scroll_page_down()
+        elif key == "pageup":
+            event.stop()
+            self.query_one("#sbs-scroll", VerticalScroll).scroll_page_up()
+        elif key in ("J", "n"):
+            event.stop()
+            self._jump_to_next_change()
+        elif key in ("K", "N"):
+            event.stop()
+            self._jump_to_prev_change()
         else:
             # Block other keys from reaching app-level bindings
             event.stop()
@@ -47,6 +63,38 @@ class SideBySideDiffScreen(ModalScreen[int]):
             if row_to_new_ln[i]:
                 return row_to_new_ln[i]
         return 1
+
+    def _change_hunk_starts(self) -> list[int]:
+        """Return display row indices where each change hunk begins."""
+        row_types = getattr(self, "_row_types", [])
+        if not row_types:
+            return []
+        starts = []
+        prev_is_change = False
+        for i, t in enumerate(row_types):
+            is_change = t != "same"
+            if is_change and not prev_is_change:
+                starts.append(i)
+            prev_is_change = is_change
+        return starts
+
+    def _jump_to_next_change(self) -> None:
+        """Jump to the next diff hunk below the visible area."""
+        scroller = self.query_one("#sbs-scroll", VerticalScroll)
+        visible_bottom = int(scroller.scroll_y + scroller.size.height)
+        for row in self._change_hunk_starts():
+            if row > visible_bottom:
+                scroller.scroll_to(0, max(0, row - 3), animate=False)
+                return
+
+    def _jump_to_prev_change(self) -> None:
+        """Jump to the previous diff hunk above the visible area."""
+        scroller = self.query_one("#sbs-scroll", VerticalScroll)
+        visible_top = int(scroller.scroll_y)
+        for row in reversed(self._change_hunk_starts()):
+            if row < visible_top:
+                scroller.scroll_to(0, max(0, row - 3), animate=False)
+                return
 
     DEFAULT_CSS = """
     SideBySideDiffScreen {
@@ -207,11 +255,11 @@ class SideBySideDiffScreen(ModalScreen[int]):
                 if hi_line:
                     self._append_truncated(result, hi_line, text_width)
                 else:
-                    result.append(old_text[:text_width])
+                    self._append_truncated_str(result, old_text, text_width)
             else:
                 result.append(f"{''.rjust(ln_width)}  ")
             # Pad left cell to col_width
-            current_len = len(result) - left_start
+            current_len = cell_len(result.plain[left_start:])
             if current_len < col_width:
                 result.append(" " * (col_width - current_len))
             left_end = len(result)
@@ -235,11 +283,11 @@ class SideBySideDiffScreen(ModalScreen[int]):
                 if hi_line:
                     self._append_truncated(result, hi_line, text_width)
                 else:
-                    result.append(new_text[:text_width])
+                    self._append_truncated_str(result, new_text, text_width)
             else:
                 result.append(f"{''.rjust(ln_width)}  ")
             # Pad right cell to col_width
-            current_len = len(result) - right_start
+            current_len = cell_len(result.plain[right_start:])
             if current_len < col_width:
                 result.append(" " * (col_width - current_len))
             right_end = len(result)
@@ -307,12 +355,37 @@ class SideBySideDiffScreen(ModalScreen[int]):
 
     @staticmethod
     def _append_truncated(result: Text, hi_line: Text, max_width: int) -> None:
-        """Append a highlighted line to result, truncated to max_width characters."""
+        """Append a highlighted line to result, truncated to max_width cell width."""
         plain = hi_line.plain
-        if len(plain) <= max_width:
+        if cell_len(plain) <= max_width:
             result.append_text(hi_line)
         else:
-            result.append_text(hi_line[:max_width])
+            # Truncate by cell width
+            w = 0
+            cut = 0
+            for i, ch in enumerate(plain):
+                cw = cell_len(ch)
+                if w + cw > max_width:
+                    break
+                w += cw
+                cut = i + 1
+            result.append_text(hi_line[:cut])
+
+    @staticmethod
+    def _append_truncated_str(result: Text, text: str, max_width: int) -> None:
+        """Append a plain string truncated to max_width cell width."""
+        if cell_len(text) <= max_width:
+            result.append(text)
+        else:
+            w = 0
+            cut = 0
+            for i, ch in enumerate(text):
+                cw = cell_len(ch)
+                if w + cw > max_width:
+                    break
+                w += cw
+                cut = i + 1
+            result.append(text[:cut])
 
     @staticmethod
     def _highlight_lines(content: str, filename: str) -> dict[int, Text]:
