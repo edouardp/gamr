@@ -158,6 +158,7 @@ class GamrApp(App):
 
         tree.focus()
         self.set_interval(TIMESTAMP_REFRESH_INTERVAL, self._refresh_timestamps)
+        self._update_status_bar()
 
     def on_unmount(self) -> None:
         """Release native filesystem watcher resources during every shutdown path."""
@@ -524,6 +525,7 @@ class GamrApp(App):
         self._last_filtered_paths = new_paths
 
         tree.load_entries(filtered, self.target_path, collapsed_dirs=collapsed)
+        self._update_status_bar()
 
     def _update_global_mtime_range(self, tree: FileTreeTable) -> None:
         """Set the global mtime range from all entries (stable across filters)."""
@@ -536,6 +538,7 @@ class GamrApp(App):
         entries = filter_by_status(self._all_entries, statuses)
         if search_query.strip():
             entries = fuzzy_filter(entries, search_query.strip())
+        self._last_filtered_entries = entries
         return entries
 
     # -------------------------------------------------------------------------
@@ -558,6 +561,7 @@ class GamrApp(App):
         """Toggle follow mode — auto-select last changed file on watch events."""
         self._follow_mode = not self._follow_mode
         self.notify(f"Follow mode: {'ON' if self._follow_mode else 'OFF'}")
+        self._update_status_bar()
 
     def action_toggle_diff(self) -> None:
         self._cycle_diff_mode(1)
@@ -588,6 +592,7 @@ class GamrApp(App):
                 self._scroll_positions[entry.path] = source_line
             preview.invalidate()
             self._show_preview_for(entry, scroll_to_top=False, restore_line=source_line)
+        self._update_status_bar()
 
     def action_toggle_blame(self) -> None:
         """Toggle blame columns (author + git time) and load data if needed."""
@@ -597,6 +602,7 @@ class GamrApp(App):
         tree.show_git_time = show
         if show and self._git.is_git_repo():
             self._load_blame_data()
+        self._update_status_bar()
 
     def action_toggle_col(self, col: str) -> None:
         """Toggle a column by its reactive attribute name (e.g. 'size', 'mtime')."""
@@ -615,12 +621,15 @@ class GamrApp(App):
 
     def action_cycle_view(self) -> None:
         self.query_one(FileTreeTable).action_cycle_view()
+        self._update_status_bar()
 
     def action_cycle_view_reverse(self) -> None:
         self.query_one(FileTreeTable).action_cycle_view_reverse()
+        self._update_status_bar()
 
     def action_toggle_modified(self) -> None:
         self.query_one(Toolbar).toggle_modified()
+        self._update_status_bar()
 
     def _has_modal(self) -> bool:
         """Return True if a modal screen is currently displayed."""
@@ -715,6 +724,7 @@ class GamrApp(App):
             idx = -1
         next_style = styles[(idx + 1) % len(styles)]
         self._set_overview_style(overview, next_style)
+        self._update_status_bar()
 
     def _get_overview_style(self, overview: DiffOverview) -> str:
         if not overview.display:
@@ -736,6 +746,29 @@ class GamrApp(App):
     # -------------------------------------------------------------------------
     # State persistence
     # -------------------------------------------------------------------------
+
+    def _update_status_bar(self) -> None:
+        """Refresh the toolbar status indicators."""
+        from gamr.widgets.file_tree_table import ViewMode
+
+        tree = self.query_one(FileTreeTable)
+        view_labels = {ViewMode.TREE: "tree", ViewMode.FLAT_NAME: "flat", ViewMode.FLAT_PATH: "path"}
+        diff_labels = {DiffMode.FULL: "full", DiffMode.GUTTER: "gutter", DiffMode.UNIFIED: "unified"}
+        overview = self.query_one(PreviewPane).query_one(DiffOverview)
+        overview_style = self._get_overview_style(overview)
+        toolbar = self.query_one(Toolbar)
+        filtered_files = sum(1 for e in getattr(self, "_last_filtered_entries", self._all_entries) if e.path.is_file())
+        total_files = sum(1 for e in self._all_entries if e.path.is_file())
+        toolbar.update_status(
+            git_filter="modified" in toolbar.selected_filter_ids,
+            follow=self._follow_mode,
+            diff_mode=diff_labels.get(self._diff_mode, ""),
+            view_mode=view_labels.get(tree.view_mode, ""),
+            file_count=filtered_files,
+            total_files=total_files,
+            overview_style=overview_style,
+            blame_visible=tree.show_author,
+        )
 
     def _save_state(self) -> None:
         """Capture all app state from live widgets and persist to disk."""

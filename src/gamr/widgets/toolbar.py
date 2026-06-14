@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
@@ -11,6 +11,25 @@ from textual.widgets import Input, Static
 
 from gamr.models import GitStatus
 from gamr.services.filter import statuses_for_filter_ids
+
+
+class _StatusItem(Static):
+    """Clickable status indicator."""
+
+    ALLOW_SELECT = False
+
+    def on_click(self) -> None:
+        actions = {
+            "st-view": "action_cycle_view",
+            "st-files": "action_toggle_modified",
+            "st-follow": "action_toggle_follow",
+            "st-diff": "action_toggle_diff",
+            "st-overview": "action_cycle_overview",
+            "st-blame": "action_toggle_blame",
+        }
+        action = actions.get(self.id or "")
+        if action:
+            getattr(self.app, action)()
 
 
 class Toolbar(Widget):
@@ -48,15 +67,81 @@ class Toolbar(Widget):
         content-align: center middle;
         color: $text-muted;
     }
+    Toolbar #status-left {
+        width: 16;
+        height: 3;
+        padding: 0 1;
+    }
+    Toolbar #status-right {
+        width: 16;
+        height: 3;
+        padding: 0 1;
+    }
+    Toolbar .status-item {
+        height: 1;
+        width: 100%;
+        color: $text-muted;
+    }
+    Toolbar #status-right .status-item {
+        text-align: right;
+    }
     """
 
     def compose(self) -> ComposeResult:
         with Horizontal():
+            with Vertical(id="status-left"):
+                yield _StatusItem("", id="st-view", classes="status-item")
+                yield _StatusItem("", id="st-files", classes="status-item")
+                yield _StatusItem("", id="st-blame", classes="status-item")
             yield Static(
                 " 🬖🬋🬏🬖🬋🬏🬱🬞🬓🬚🬋🬏 Git-aware\n ▌🬋🬓🬛🬋▌▌🬄▌🬛🬚🬀 Agentic coding assistant\n 🬈🬋🬀🬄 🬄🬄 🬄🬄🬁🬃 Monitor & Review",
                 id="logo",
             )
             yield Input(placeholder="🔍 Filter files...", id="search-input", classes="hidden")
+            with Vertical(id="status-right"):
+                yield _StatusItem("", id="st-diff", classes="status-item")
+                yield _StatusItem("", id="st-overview", classes="status-item")
+                yield _StatusItem("", id="st-follow", classes="status-item")
+
+    def update_status(
+        self,
+        *,
+        git_filter: bool,
+        follow: bool,
+        diff_mode: str,
+        view_mode: str,
+        file_count: int = 0,
+        total_files: int = 0,
+        overview_style: str = "",
+        blame_visible: bool = False,
+    ) -> None:
+        """Update the status indicators."""
+        # Left: file pane state
+        view_icons = {"tree": "🌳 tree", "flat": "📄 flat", "path": "📁 path"}
+        self.query_one("#st-view", _StatusItem).update(view_icons.get(view_mode, ""))
+
+        if git_filter:
+            self.query_one("#st-files", _StatusItem).update(f"🔸 git ({file_count}/{total_files})")
+        else:
+            if file_count < total_files:
+                self.query_one("#st-files", _StatusItem).update(f"📋 {file_count}/{total_files} files")
+            else:
+                self.query_one("#st-files", _StatusItem).update(f"📋 {total_files} files")
+
+        self.query_one("#st-blame", _StatusItem).update("👤 blame" if blame_visible else "👤 ·")
+
+        # Right: preview pane state
+        self.query_one("#st-diff", _StatusItem).update(f"{diff_mode} 👓")
+
+        if overview_style and overview_style != "off":
+            overview_labels = {"line": "1x", "quadrant": "2x", "sextant": "3x", "braille": "⣿"}
+            self.query_one("#st-overview", _StatusItem).update(
+                f"overview {overview_labels.get(overview_style, overview_style)}"
+            )
+        else:
+            self.query_one("#st-overview", _StatusItem).update("overview ·")
+
+        self.query_one("#st-follow", _StatusItem).update("follow 👀" if follow else "· 👀")
 
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "search-input":
