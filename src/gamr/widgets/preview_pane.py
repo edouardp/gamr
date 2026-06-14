@@ -311,10 +311,6 @@ class PreviewPane(Widget):
         Binding("space", "page_down", "Page down", show=False),
         Binding("pagedown", "page_down", "Page down", show=False),
         Binding("pageup", "page_up", "Page up", show=False),
-        Binding("J", "next_change", "Next change", show=False),
-        Binding("n", "next_change", "Next change", show=False),
-        Binding("K", "prev_change", "Prev change", show=False),
-        Binding("N", "prev_change", "Prev change", show=False),
     ]
 
     current_path: reactive[Path | None] = reactive(None)

@@ -78,6 +78,10 @@ class GamrApp(App):
         Binding("g", "toggle_modified", "Git modified", show=True, priority=True),
         Binding("o", "cycle_overview", "Overview mode", show=True, priority=True),
         Binding("s", "side_by_side", "Side-by-side", show=True, priority=True),
+        Binding("J", "next_hunk", "Next hunk", show=False, priority=True),
+        Binding("n", "next_hunk", "Next hunk", show=False, priority=True),
+        Binding("K", "prev_hunk", "Prev hunk", show=False, priority=True),
+        Binding("N", "prev_hunk", "Prev hunk", show=False, priority=True),
         Binding("e", "open_editor", "Editor", show=True, priority=True),
         Binding("O", "open_macos", show=False, priority=True),
         Binding("escape", "unfocus_filter", show=False, priority=True),
@@ -630,6 +634,14 @@ class GamrApp(App):
     def action_cycle_view_reverse(self) -> None:
         self.query_one(FileTreeTable).action_cycle_view_reverse()
         self._update_status_bar()
+
+    def action_next_hunk(self) -> None:
+        """Jump to next diff hunk in preview (works from any focus)."""
+        self.query_one(PreviewPane).action_next_change()
+
+    def action_prev_hunk(self) -> None:
+        """Jump to previous diff hunk in preview (works from any focus)."""
+        self.query_one(PreviewPane).action_prev_change()
 
     def action_toggle_modified(self) -> None:
         self.query_one(Toolbar).toggle_modified()
