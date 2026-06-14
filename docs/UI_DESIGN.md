@@ -53,6 +53,7 @@
 - Filters compose: git filter applied first, then fuzzy search
 - Filter state (git toggle + search query) persisted between sessions
 - Collapsed folder state is preserved when toggling between filtered and unfiltered views
+- Cursor restores to the previously previewed file when filters change (no jump to first file)
 
 ## Follow Mode
 
@@ -262,3 +263,20 @@
 - Content-sized dialog: expands to exactly fit the shortcut list
 - Styled with Rich markup: bold section headers, cyan key names
 - When the help modal is active, other app keybindings do not fire
+
+## Toolbar Status Indicators
+
+- Left side: file pane settings (view mode, file count/git filter, blame)
+- Right side: preview pane settings (diff mode, overview style, follow mode)
+- All indicators are clickable — click to cycle/toggle the setting
+- Status updates immediately when settings change via keyboard or click
+- View mode shows "sorted" when a column sort is active
+- Overview style reflects user preference (not affected by preview rendering hiding the bar)
+- File count excludes directories; shows filtered/total when filtering is active
+- Git filter indicator shows `🔸 git (N/total)` with file count
+
+### Terminal-Aware Logo
+
+- Sextant/diagonal logo shown in Ghostty, Kitty, WezTerm, cmux
+- Box-drawing fallback (`future` figlet font) for other terminals
+- Detected via `TERM` and `TERM_PROGRAM` environment variables

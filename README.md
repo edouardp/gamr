@@ -29,6 +29,7 @@
 - **Preferences file** — `~/.config/gamr/preferences.toml` for user defaults (e.g., diff mode cycle)
 - **Graceful degradation** — works on non-git directories (hides git UI)
 - **Keyboard shortcuts help** — `?` shows all keybindings in a popup
+- **Toolbar status indicators** — clickable view mode, diff mode, overview, follow, blame, file count
 
 ## Install
 

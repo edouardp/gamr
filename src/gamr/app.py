@@ -533,6 +533,8 @@ class GamrApp(App):
         self._last_filtered_paths = new_paths
 
         tree.load_entries(filtered, self.target_path, collapsed_dirs=collapsed)
+        if self._previewed_path:
+            tree.restore_cursor(self._previewed_path)
         self._update_status_bar()
 
     def _update_global_mtime_range(self, tree: FileTreeTable) -> None:
@@ -743,7 +745,7 @@ class GamrApp(App):
         self._update_status_bar()
 
     def _get_overview_style(self, overview: DiffOverview) -> str:
-        if not overview.display:
+        if getattr(self, "_overview_off", False):
             return "off"
         if overview.use_braille:
             return "braille"
@@ -754,6 +756,7 @@ class GamrApp(App):
         return "line"
 
     def _set_overview_style(self, overview: DiffOverview, style: str) -> None:
+        self._overview_off = style == "off"
         overview.use_braille = style == "braille"
         overview.use_quadrant = style == "quadrant"
         overview.use_sextant = style == "sextant"
