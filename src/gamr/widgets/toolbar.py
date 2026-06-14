@@ -13,6 +13,28 @@ from gamr.models import GitStatus
 from gamr.services.filter import statuses_for_filter_ids
 
 
+def _supports_sextants() -> bool:
+    """Check if the terminal supports Unicode Symbols for Legacy Computing."""
+    import os
+
+    term = os.environ.get("TERM", "").lower()
+    term_program = os.environ.get("TERM_PROGRAM", "").lower()
+    # Terminals with confirmed sextant/legacy computing support
+    supported = ("ghostty", "kitty", "wezterm", "cmux")
+    return any(name in term or name in term_program for name in supported)
+
+
+def _get_logo() -> str:
+    """Return the appropriate logo based on terminal capabilities."""
+    if _supports_sextants():
+        return (
+            "  🭆🬋🭑 🭆🬋🭑 🬹🬿🭊🬹 🬹🬋🭑 ╷ Git-aware\n"
+            "  █🬇🬹 █🬋█ █🭕🭠█ █🬋🬴 │ Agentic coding assisstant\n"
+            "  🭧🬋🭜 🬎 🬎 🬎  🬎 🬎 🬎 ╵ Monitor & Review tool"
+        )
+    return "  ┏━╸┏━┓┏┳┓┏━┓  Git-aware\n  ┃╺┓┣━┫┃┃┃┣┳┛  Agentic coding assistant\n  ┗━┛╹ ╹╹ ╹╹┗╸  Monitor & Review tool"
+
+
 class _StatusItem(Static):
     """Clickable status indicator."""
 
@@ -94,9 +116,7 @@ class Toolbar(Widget):
                 yield _StatusItem("", id="st-files", classes="status-item")
                 yield _StatusItem("", id="st-blame", classes="status-item")
             yield Static(
-                "  🭆🬋🭑 🭆🬋🭑 🬹🬿🭊🬹 🬹🬋🭑 ╷ Git-aware\n"
-                + "  █🬇🬹 █🬋█ █🭕🭠█ █🬹🬝 │ Agentic coding assisstant\n"
-                + "  🭧🬋🭜 🬎 🬎 🬎  🬎 🬎 🬎 ╵ Monitor & Review tool",
+                _get_logo(),
                 id="logo",
             )
             yield Input(placeholder="🔍 Filter files...", id="search-input", classes="hidden")
