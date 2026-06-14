@@ -77,9 +77,22 @@ def compute_gutter_markers(diff_text: str, total_lines: int) -> GutterMarkers:
     """
     data = parse_diff_hunks(diff_text)
     pure_added = data.added_lines - data.changed_lines
+    # Pure deletions: removed block appears before a non-changed line
     has_deletion_after: set[int] = {
         ln - 1 for ln in data.removed_context if ln - 1 >= 1 and ln not in data.changed_lines
     }
+    # Modified+removed: a changed line's removed block has more removals than additions.
+    # Mark the preceding unchanged line with deletion indicator.
+    for ln, removed in data.removed_context.items():
+        if ln not in data.changed_lines:
+            continue
+        run_len = 0
+        while ln + run_len in data.added_lines:
+            run_len += 1
+        if len(removed) > run_len:
+            preceding = ln - 1
+            if preceding >= 1 and preceding not in data.changed_lines and preceding not in pure_added:
+                has_deletion_after.add(preceding)
     if data.trailing_removed and total_lines > 0:
         has_deletion_after.add(total_lines)
     return GutterMarkers(data.changed_lines, pure_added, has_deletion_after)
