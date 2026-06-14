@@ -117,7 +117,7 @@ class Toolbar(Widget):
     ) -> None:
         """Update the status indicators."""
         # Left: file pane state
-        view_icons = {"tree": "🌳 tree", "flat": "📄 flat", "path": "📁 path"}
+        view_icons = {"tree": "🌳 tree", "flat": "📄 flat", "path": "📁 path", "sorted": "↕️ sorted"}
         self.query_one("#st-view", _StatusItem).update(view_icons.get(view_mode, ""))
 
         if git_filter:

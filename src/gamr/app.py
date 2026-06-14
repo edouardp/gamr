@@ -307,6 +307,10 @@ class GamrApp(App):
     # Preview pane management
     # -------------------------------------------------------------------------
 
+    def on_data_table_header_selected(self, event) -> None:
+        """Update status bar when sort changes via column header click."""
+        self._update_status_bar()
+
     def on_file_tree_table_node_highlighted(self, event: FileTreeTable.NodeHighlighted) -> None:
         """Domain decision: only update preview when user navigates to a new file."""
         entry = event.entry
@@ -753,6 +757,9 @@ class GamrApp(App):
 
         tree = self.query_one(FileTreeTable)
         view_labels = {ViewMode.TREE: "tree", ViewMode.FLAT_NAME: "flat", ViewMode.FLAT_PATH: "path"}
+        view_mode_label = view_labels.get(tree.view_mode, "")
+        if tree._sort_column:
+            view_mode_label = "sorted"
         diff_labels = {DiffMode.FULL: "full", DiffMode.GUTTER: "gutter", DiffMode.UNIFIED: "unified"}
         overview = self.query_one(PreviewPane).query_one(DiffOverview)
         overview_style = self._get_overview_style(overview)
@@ -763,7 +770,7 @@ class GamrApp(App):
             git_filter="modified" in toolbar.selected_filter_ids,
             follow=self._follow_mode,
             diff_mode=diff_labels.get(self._diff_mode, ""),
-            view_mode=view_labels.get(tree.view_mode, ""),
+            view_mode=view_mode_label,
             file_count=filtered_files,
             total_files=total_files,
             overview_style=overview_style,
