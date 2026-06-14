@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.3 (2026-06-14)
+
+  - Rounded logo using Unicode diagonal block elements (🭆🭑🭧🭜)
+  - Wider M in logo using diagonal smooth mosaic characters
+  - Toolbar status bar: clickable indicators for view, git filter, follow, diff, overview, blame
+  - Status shows "sorted" when column sort active, updates on header click
+  - `J`/`n` and `K`/`N` hunk jumping now works from any focus (promoted to app-level)
+  - `V` cycles view mode in reverse
+  - `?` keyboard shortcuts help popup
+  - Persist preview scroll position between sessions
+
 ## 0.2.2 (2026-06-14)
 
   - Toolbar status indicators: view mode, file count, git filter, follow, diff mode, overview style, blame
