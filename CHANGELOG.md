@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 (2026-06-14)
+
+  - Toolbar status indicators: view mode, file count, git filter, follow, diff mode, overview style, blame
+  - Clickable status items — click to cycle/toggle the corresponding setting
+  - `?` keyboard shortcuts help popup (auto-sized to content)
+  - `V` cycles view mode in reverse
+  - Persist preview scroll position between sessions
+  - Status indicators: left side for file pane, right side for preview pane (right-justified)
+
 ## 0.2.1 (2026-06-14)
 
   - Fix double-width unicode (emoji, CJK) misaligning the side-by-side divider
