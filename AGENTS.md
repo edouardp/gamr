@@ -12,8 +12,8 @@ Rules and processes for AI agents working on this repo.
 ## CHANGELOG.md
 
 - **Never** update CHANGELOG.md unless explicitly asked.
-- The placeholder `<!-- Fill in release notes -->` stays until a release is requested.
-- Only the user decides when to release.
+- The user will run the release procedure themselves, and msy ask for the CHANGELOG.md to be updated. Add in the
+  changes since the last release (releases are git tagged)
 
 ## Documentation
 
@@ -27,7 +27,8 @@ Rules and processes for AI agents working on this repo.
 
 - Python 3.11+. Type hints on function signatures.
 - Textual for TUI. Dulwich for git. No git binary dependency.
-- App-level keybindings use `priority=True` so they work regardless of focus.
+- Separate domain models from UI. The model drives the UI and reacts to UI changes — don't implement logic purely in widget code.
+- App-level keybindings use `priority=True` in general, so they work regardless of focus.
 - Widgets are presentational; the app (`app.py`) owns domain logic.
 - Match existing patterns. Read before writing.
 
