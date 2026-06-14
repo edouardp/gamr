@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 (2026-06-14)
+
+  - Terminal-aware logo: sextant version for Ghostty/Kitty/WezTerm/cmux, box-drawing fallback for others
+  - Detects `TERM`/`TERM_PROGRAM` for sextant support (ghostty, kitty, wezterm, cmux)
+  - Fallback logo uses `future` figlet font (box-drawing chars supported everywhere)
+  - Logo includes taglines: "Git-aware / Agentic coding assistant / Monitor & Review tool"
+  - R letter refined with smoother diagonal stroke
+
 ## 0.2.3 (2026-06-14)
 
   - Rounded logo using Unicode diagonal block elements (🭆🭑🭧🭜)
