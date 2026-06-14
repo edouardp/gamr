@@ -7,8 +7,6 @@
   - Fallback logo uses `future` figlet font (box-drawing chars supported everywhere)
   - Logo includes taglines: "Git-aware / Agentic coding assistant / Monitor & Review tool"
   - R letter refined with smoother diagonal stroke
-  - Fix: cycling diff mode (`d`) no longer resets overview style indicator
-  - Fix: leaving git filter view preserves cursor on the previously previewed file
 
 ## 0.2.3 (2026-06-14)
 
