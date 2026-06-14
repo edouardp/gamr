@@ -94,7 +94,9 @@ class Toolbar(Widget):
                 yield _StatusItem("", id="st-files", classes="status-item")
                 yield _StatusItem("", id="st-blame", classes="status-item")
             yield Static(
-                " 🭆🬋🭑🬖🬋🬏🬱 🬞🬓🬚🬋🬏\n ▌🬋🬓🬛🬋▌▌🬈🬀▌🬛🬚🬀\n 🭧🬋🭜🬄 🬄🬄  🬄🬄🬁🬃",
+                "  🭆🬋🭑 🭆🬋🭑 🬹🬿🭊🬹 🬹🬋🭑 ╷ Git-aware\n"
+                + "  █🬇🬹 █🬋█ █🭕🭠█ █🬹🬝 │ Agentic coding assisstant\n"
+                + "  🭧🬋🭜 🬎 🬎 🬎  🬎 🬎 🬎 ╵ Monitor & Review tool",
                 id="logo",
             )
             yield Input(placeholder="🔍 Filter files...", id="search-input", classes="hidden")
