@@ -29,7 +29,7 @@ def _get_logo() -> str:
     if _supports_sextants():
         return (
             "  🭆🬋🭑 🭆🬋🭑 🬹🬿🭊🬹 🬹🬋🭑 ╷ Git-aware\n"
-            "  █🬇🬹 █🬋█ █🭕🭠█ █🬋🬴 │ Agentic coding assisstant\n"
+            "  █🬇🬹 █🬋█ █🭕🭠█ █🬋🬴 │ Agentic coding assistant\n"
             "  🭧🬋🭜 🬎 🬎 🬎  🬎 🬎 🬎 ╵ Monitor & Review tool"
         )
     return "  ┏━╸┏━┓┏┳┓┏━┓  Git-aware\n  ┃╺┓┣━┫┃┃┃┣┳┛  Agentic coding assistant\n  ┗━┛╹ ╹╹ ╹╹┗╸  Monitor & Review tool"
