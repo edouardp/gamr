@@ -77,7 +77,7 @@
 - **J**/**n** — Jump to next diff hunk not currently visible
 - **K**/**N** — Jump to previous diff hunk not currently visible
 - **e** — Open file in `$VISUAL`/`$EDITOR` (vim/nvim get `+line` for scroll position)
-- **O** — Open file in default app via macOS `open` command (no-op on other platforms)
+- **O** — Open file in default app (`open` on macOS, `xdg-open` on Linux/BSD/WSL2, `startfile` on Windows)
 - Hunk jumps show 3 lines of context above the target; no-op if no changes
 - Contiguous changed lines are treated as a single hunk for navigation
 

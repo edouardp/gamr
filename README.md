@@ -62,7 +62,7 @@ uv run gamr [path]
 | `ctrl+f` | Focus search input                                   |
 | `b`      | Toggle blame columns (last author, git time)         |
 | `1`–`7`  | Toggle individual columns                            |
-| `O`      | Open file in default app (macOS)                     |
+| `O`      | Open file in default app                             |
 | `tab`    | Switch focus between tree and preview                |
 | `ctrl+p` | Command palette (spaced paths, gradient toggle)      |
 | `?`      | Show keyboard shortcuts help                         |

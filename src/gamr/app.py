@@ -721,15 +721,20 @@ class GamrApp(App):
             subprocess.run(cmd)  # nosec B603
 
     def action_open_macos(self) -> None:
-        """Open the selected file with macOS 'open' command."""
+        """Open the selected file with the system default application."""
+        import os
         import subprocess  # nosec B404
         import sys
 
-        if sys.platform != "darwin":
-            return
         if not self._previewed_path or not self._previewed_path.exists():
             return
-        subprocess.Popen(["open", str(self._previewed_path)])  # nosec B603 B607
+        path = str(self._previewed_path)
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", path])  # nosec B603 B607
+        elif sys.platform == "win32":
+            os.startfile(path)  # nosec B606
+        else:
+            subprocess.Popen(["xdg-open", path])  # nosec B603 B607
 
     def action_cycle_overview(self) -> None:
         """Cycle diff overview style through preferences.overview_styles."""

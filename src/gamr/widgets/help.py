@@ -29,7 +29,7 @@ HELP_TEXT = """\
   [cyan]J / n[/]          Jump to next diff hunk
   [cyan]K / N[/]          Jump to previous diff hunk
   [cyan]e[/]              Open in $EDITOR
-  [cyan]O[/]              Open in default app (macOS)
+  [cyan]O[/]              Open in default app
 
 [bold]Columns[/]
   [cyan]b[/]              Toggle blame columns
