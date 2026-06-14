@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5 (2026-06-14)
+
+  - Fix: cycling diff mode (`d`) no longer resets overview style indicator to "off"
+  - Fix: leaving git filter preserves cursor on the previously previewed file
+  - Fix: typo "assisstant" → "assistant" in logo tagline
+  - Terminal-aware logo: sextant version for Ghostty/Kitty/WezTerm/cmux, box-drawing fallback for others
+  - Fallback logo uses `future` figlet font style (box-drawing chars, works everywhere)
+
 ## 0.2.4 (2026-06-14)
 
   - Terminal-aware logo: sextant version for Ghostty/Kitty/WezTerm/cmux, box-drawing fallback for others
