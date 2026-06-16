@@ -294,6 +294,7 @@ class GamrApp(App):
         if not self._follow_mode or not changed_paths:
             return
         follow_path = changed_paths[-1]
+        tree.ensure_visible(follow_path)
         tree.restore_cursor(follow_path)
         self._previewed_path = follow_path
         self._show_followed_path(follow_path)

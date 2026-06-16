@@ -265,6 +265,25 @@ class FileTreeTable(DataTable):
         if self.row_count > 0:
             self.move_cursor(row=0)
 
+    def ensure_visible(self, path: Path) -> None:
+        """Expand all ancestor directories so path is visible in tree mode."""
+        if self.view_mode != ViewMode.TREE:
+            return
+        # Walk from root to the target, expanding any collapsed ancestor
+        parts = []
+        try:
+            parts = list(path.relative_to(self._root_path).parents)[:-1]
+        except ValueError:
+            return
+        changed = False
+        for ancestor in reversed(parts):
+            node = self._find_node_by_path(self._tree_nodes, self._root_path / ancestor)
+            if node and node.is_dir and not node.expanded:
+                node.expanded = True
+                changed = True
+        if changed:
+            self._sync_table()
+
     # --- Actions ---
 
     def action_toggle_node(self) -> None:
