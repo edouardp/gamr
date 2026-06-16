@@ -13,6 +13,8 @@ from textual.containers import Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Static
 
+from gamr.widgets.preview_pane import DiffOverview
+
 
 class _DiffContent(Static):
     """Static widget for diff content, no wrapping."""
@@ -127,7 +129,6 @@ class SideBySideDiffScreen(ModalScreen[int]):
     #sbs-overview {
         width: 1;
         height: 100%;
-        background: $surface;
     }
     """
 
@@ -140,13 +141,22 @@ class SideBySideDiffScreen(ModalScreen[int]):
     _BG_REMOVED_BRIGHT = "#501010"
     _BG_ADDED_BRIGHT = "#104010"
 
-    def __init__(self, filename: str, diff_text: str, old_content: str, new_content: str, scroll_to: int = 0) -> None:
+    def __init__(
+        self,
+        filename: str,
+        diff_text: str,
+        old_content: str,
+        new_content: str,
+        scroll_to: int = 0,
+        overview_style: str = "line",
+    ) -> None:
         super().__init__()
         self._filename = filename
         self._diff_text = diff_text
         self._old_content = old_content
         self._new_content = new_content
         self._scroll_to = scroll_to
+        self._overview_style = overview_style
 
     def compose(self) -> ComposeResult:
         from textual.containers import Horizontal
@@ -156,9 +166,14 @@ class SideBySideDiffScreen(ModalScreen[int]):
             with Horizontal(id="sbs-body"):
                 with VerticalScroll(id="sbs-scroll"):
                     yield _DiffContent(id="sbs-content")
-                yield Static("", id="sbs-overview")
+                yield DiffOverview(id="sbs-overview")
 
     def on_mount(self) -> None:
+        overview = self.query_one("#sbs-overview", DiffOverview)
+        overview.use_braille = self._overview_style == "braille"
+        overview.use_quadrant = self._overview_style == "quadrant"
+        overview.use_sextant = self._overview_style == "sextant"
+        overview.display = self._overview_style != "off"
         content, row_to_new_ln, row_types = self._build_combined_view()
         self.query_one("#sbs-content", _DiffContent).update(content)
         self._row_to_new_ln = row_to_new_ln
@@ -173,35 +188,24 @@ class SideBySideDiffScreen(ModalScreen[int]):
         self.query_one("#sbs-scroll", VerticalScroll).focus()
 
     def _render_overview(self) -> None:
-        """Render the 1-column diff overview bar."""
-        overview = self.query_one("#sbs-overview", Static)
-        height = overview.size.height or 20
+        """Render the 1-column diff overview bar via the shared DiffOverview widget."""
+        overview = self.query_one("#sbs-overview", DiffOverview)
         row_types = getattr(self, "_row_types", [])
         if not row_types:
+            overview.clear_overview()
             return
         total = len(row_types)
-        result = Text(no_wrap=True)
-        for row_idx in range(height):
-            # Map this overview row to a range of display rows
-            start = int(row_idx * total / height)
-            end = int((row_idx + 1) * total / height)
-            chunk = row_types[start:end] if end > start else [row_types[min(start, total - 1)]]
-            # Determine color from the chunk
-            has_changed = "changed" in chunk
-            has_added = "added" in chunk
-            has_removed = "removed" in chunk
-            if has_changed:
-                result.append("▐\n", style="#ff8c00")
-            elif has_added:
-                result.append("▐\n", style="green")
-            elif has_removed:
-                result.append("▐\n", style="red")
-            else:
-                result.append(" \n", style="dim")
-        overview.update(result)
-
-    def on_resize(self, event) -> None:
-        self._render_overview()
+        green: set[int] = set()
+        red: set[int] = set()
+        orange: set[int] = set()
+        for i, rt in enumerate(row_types, 1):
+            if rt == "added":
+                green.add(i)
+            elif rt == "removed":
+                red.add(i)
+            elif rt == "changed":
+                orange.add(i)
+        overview.set_gutter_map(total, orange, green, red)
 
     def refresh_content(self, diff_text: str, old_content: str, new_content: str) -> None:
         """Re-render with updated content (called when file changes on disk)."""

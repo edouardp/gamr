@@ -687,8 +687,11 @@ class GamrApp(App):
             new_content = ""
         preview = self.query_one(PreviewPane)
         source_line = preview.get_source_line_at_scroll()
+        overview_style = self._get_overview_style(preview.query_one(DiffOverview))
         self.push_screen(
-            SideBySideDiffScreen(entry.path.name, diff, old_content, new_content, scroll_to=source_line),
+            SideBySideDiffScreen(
+                entry.path.name, diff, old_content, new_content, scroll_to=source_line, overview_style=overview_style
+            ),
             callback=self._on_side_by_side_dismiss,
         )
 
