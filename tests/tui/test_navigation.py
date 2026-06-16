@@ -209,3 +209,92 @@ async def test_space_toggles_directory(tree_repo: Path) -> None:
         await pilot.press("space")
         await pilot.pause()
         assert tree.row_count == rows_expanded
+
+
+async def test_ensure_visible_expands_collapsed_ancestor(tree_repo: Path) -> None:
+    """
+    Start state:  src/ is collapsed
+    Action:       call ensure_visible(src/alpha.py)
+    Expected:     src/ expands, alpha.py becomes a visible row
+
+        ▶ src/       ensure_visible→    ▼ src/
+                                          alpha.py  ← now visible
+                                          beta.py
+    """
+    app = GamrApp(path=tree_repo)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        tree = app.query_one(FileTreeTable)
+        src = tree_repo / "src"
+        alpha = tree_repo / "src" / "alpha.py"
+
+        # Collapse src/
+        tree.restore_cursor(src)
+        await pilot.press("left")
+        await pilot.pause()
+        assert str(alpha) not in tree._row_to_node
+
+        # ensure_visible should expand the parent
+        tree.ensure_visible(alpha)
+        await pilot.pause()
+        assert str(alpha) in tree._row_to_node
+
+
+async def test_ensure_visible_noop_when_already_visible(tree_repo: Path) -> None:
+    """
+    Start state:  src/ is expanded, alpha.py is visible
+    Action:       call ensure_visible(src/alpha.py)
+    Expected:     no change, row count stays the same
+
+        ▼ src/
+          alpha.py  ← already visible
+    """
+    app = GamrApp(path=tree_repo)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        tree = app.query_one(FileTreeTable)
+        alpha = tree_repo / "src" / "alpha.py"
+        rows_before = tree.row_count
+
+        tree.ensure_visible(alpha)
+        await pilot.pause()
+        assert tree.row_count == rows_before
+
+
+async def test_follow_mode_expands_collapsed_dir(tree_repo: Path) -> None:
+    """
+    Start state:  follow mode ON, src/ is collapsed
+    Action:       a file inside src/ changes on disk
+    Expected:     src/ auto-expands, cursor moves to the changed file
+
+        ▶ src/       file change→    ▼ src/
+        main.py                        alpha.py  ← cursor here
+                                       beta.py
+                                     main.py
+    """
+    app = GamrApp(path=tree_repo)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        tree = app.query_one(FileTreeTable)
+        src = tree_repo / "src"
+        alpha = tree_repo / "src" / "alpha.py"
+
+        # Collapse src/
+        tree.restore_cursor(src)
+        await pilot.press("left")
+        await pilot.pause()
+        assert str(alpha) not in tree._row_to_node
+
+        # Enable follow mode
+        await pilot.press("f")
+        await pilot.pause()
+
+        # Simulate a file change that triggers follow mode
+        (tree_repo / "src" / "alpha.py").write_text("a = 1\nb = 2\nc = 3\nd = 4\n")
+        await pilot.pause(delay=2.0)
+
+        # alpha.py should now be visible and selected
+        assert str(alpha) in tree._row_to_node
+        current = tree.get_current_entry()
+        assert current is not None
+        assert current.path == alpha
