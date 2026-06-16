@@ -24,4 +24,4 @@ Chosen option: **RapidFuzz** because it provides `partial_ratio` scoring fast en
 
 - Good, because inline filtering avoids async complexity
 - Good, because partial_ratio handles substring matches intuitively
-- Neutral, scoring threshold (50) may need tuning for large repos
+- Neutral, scoring threshold (70, tuned from initial 50) balances precision vs recall

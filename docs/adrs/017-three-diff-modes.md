@@ -15,12 +15,14 @@ Users need different levels of diff detail. A unified diff loses file context. A
 Three modes cycled with `d` (forward) and `D` (reverse):
 
 1. **Full diff** (default) — Complete file with syntax highlighting + diff markers (`+`/`-`) and colored backgrounds on changed lines. Removed lines shown inline.
-2. **Unified diff** — Standard coloured unified diff output (no syntax highlighting).
-3. **File preview** — Plain syntax-highlighted file, no diff indicators.
+2. **Gutter diff** — Full file with syntax highlighting and a single gutter column showing change markers (`●` modified, `+` added, `_` deleted). No inline removed lines.
+3. **Unified diff** — Standard coloured unified diff output (no syntax highlighting).
+
+See also ADR-021 which introduced the gutter mode, replacing the original "file preview" mode.
 
 ### Rendering
 
-Full diff and file preview share the same renderer (`_render_highlighted`). The only difference is whether diff markers and backgrounds are applied. This ensures consistent appearance (same line numbers, syntax theme, spacing) when toggling.
+Full diff and gutter mode share the same renderer (`_render_highlighted`). The difference is whether full diff markers/backgrounds or a single gutter column is shown. This ensures consistent appearance (same line numbers, syntax theme, spacing) when toggling.
 
 ### Scroll Preservation
 

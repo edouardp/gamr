@@ -14,9 +14,9 @@ Additionally, when the previewed file's content changes on disk, re-rendering wo
 
 ## Decision
 
-### 1. Suppress preview changes during file watcher sync
+### 1. Path-based idempotency guard for preview changes
 
-A `_suppress_preview` flag is set `True` during `_handle_file_changes` → `load_entries`. The `on_file_tree_table_node_highlighted` handler exits early when suppressed. Follow mode handles its own preview update after the flag is cleared.
+A `_previewed_path` field tracks which file is currently shown. The `on_file_tree_table_node_highlighted` handler exits early if the highlighted entry's path matches `_previewed_path`, preventing spurious switches caused by cursor movement during file watcher syncs. A separate `_refresh_preview_if_needed()` method only re-renders when the previewed file's content or git status actually changed on disk. Follow mode handles its own preview update independently.
 
 ### 2. Preserve scroll by source line on content change
 
