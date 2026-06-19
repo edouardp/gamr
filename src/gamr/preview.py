@@ -77,21 +77,27 @@ class PreviewController:
         pane.show_message(message)
 
     def show_followed_path(self, path: Path, pane: PreviewPane, diff_mode: DiffMode) -> None:
-        """Force preview update for a followed file; scroll to first diff hunk."""
+        """Update preview for a followed file; scroll to last hunk only if off-screen."""
         entry = self._file_index.entries.get(path)
         if not entry or not self.is_previewable(entry):
             return
 
-        restore_line = 0
+        # Find the last diff hunk (most likely the newest change)
+        target_line = 0
         if entry.git_status and self._git.is_git_repo():
             diff = self._git.get_diff(path)
             if diff:
-                m = re.search(r"@@ [^+]*\+(\d+)", diff)
-                if m:
-                    restore_line = int(m.group(1))
+                for m in re.finditer(r"@@ [^+]*\+(\d+)", diff):
+                    target_line = int(m.group(1))
 
+        # If the target is already visible, just re-render in place (no scroll jump)
+        already_visible = target_line > 0 and pane.is_source_line_visible(target_line)
         pane.invalidate()
-        self.render(entry, pane, diff_mode=diff_mode, restore_line=restore_line)
+        if already_visible:
+            current_line = pane.get_source_line_at_scroll()
+            self.render(entry, pane, diff_mode=diff_mode, scroll_to_top=False, restore_line=current_line)
+        else:
+            self.render(entry, pane, diff_mode=diff_mode, restore_line=target_line)
 
     def refresh_if_needed(
         self, changed_paths: list[Path] | None, git_changed: bool, pane: PreviewPane, diff_mode: DiffMode

@@ -766,6 +766,19 @@ class PreviewPane(Widget):
                 return
         scroller.scroll_to(0, len(mapping) - 1, animate=False)
 
+    def is_source_line_visible(self, source_line: int) -> bool:
+        """Check if a source line is within the currently visible viewport."""
+        scroller = self.query_one("#preview-scroll", VerticalScroll)
+        mapping = self._row_to_source
+        top_row = int(scroller.scroll_y)
+        bottom_row = int(scroller.scroll_y + scroller.size.height)
+        if not mapping:
+            return top_row <= source_line - 1 < bottom_row
+        for display_row, src in enumerate(mapping):
+            if src >= source_line:
+                return top_row <= display_row < bottom_row
+        return False
+
     def _set_content(self, content: Text | str, *, scroll_to_top: bool = True, restore_line: int = 0) -> None:
         """Update the preview content.
 
