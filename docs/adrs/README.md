@@ -31,3 +31,7 @@
 | [027](027-diff-overview-modes.md)             | Diff overview modes and scaling (supersedes 018)          |
 | [028](028-bulk-blame-tree-diffing.md)         | Bulk blame via single log walk with tree diffing          |
 | [029](029-side-by-side-diff.md)               | Side-by-side diff modal with full file alignment          |
+| [030](030-git-worktree-support.md)            | Git worktree support via .git file/directory walk         |
+| [031](031-progressive-async-startup.md)       | Progressive async startup with LoadingIndicator           |
+| [032](032-preview-controller-extraction.md)   | Preview controller extraction from app.py                 |
+| [033](033-follow-mode-hunk-tracking.md)       | Follow mode hunk tracking for smart scrolling             |

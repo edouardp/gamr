@@ -11,6 +11,7 @@
   - Three diff modes: full file diff, gutter markers, unified diff (`d`/`D` to cycle)
   - Blame data (last author, last modified) loaded in background
   - Bulk blame via single log walk with tree diffing (fast on large repos)
+  - Worktree support (linked worktrees and bare-repo layouts)
   - Respects `.gitignore` rules
 - **Three view modes** — tree, flat filenames, flat relative paths (`v` to cycle)
 - **Column sorting** — click any column header to sort asc/desc/none
@@ -79,6 +80,7 @@ src/gamr/
 ├── models.py               # FileEntry, GitStatus, DiffMode, etc.
 ├── state.py                # Persistent state management
 ├── preferences.py          # User preferences (~/.config/gamr/preferences.toml)
+├── preview.py              # PreviewController — preview orchestration and scroll state
 ├── gamr.tcss               # Stylesheet
 ├── services/
 │   ├── diff_parser.py      # Unified diff parsing into DiffData

@@ -61,7 +61,10 @@
 - When ON and the file watcher detects a change:
   - The tree cursor automatically jumps to the last changed file
   - Parent folders are expanded to reveal it
-  - The preview pane renders the file and scrolls to the first diff hunk
+  - The preview pane re-renders the file with updated diff highlighting
+  - Scrolls to the newest diff hunk only if it is off-screen
+  - If the new change is already visible in the viewport, scroll position is preserved
+  - "New hunk" detection: tracks known hunk positions per file; only hunks not previously seen trigger scrolling
 - When OFF, file watcher changes preserve the current cursor position
 - Follow mode does not persist between sessions (always starts OFF)
 
