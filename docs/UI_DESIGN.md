@@ -67,6 +67,7 @@
   - "New hunk" detection: tracks known hunk positions per file; only hunks not previously seen trigger scrolling
 - When OFF, file watcher changes preserve the current cursor position
 - Follow mode does not persist between sessions (always starts OFF)
+- When side-by-side modal is open, follow mode does not switch to new files — the modal stays on the current file but live-updates its diff if the viewed file changes on disk
 
 ## Preview Pane
 
