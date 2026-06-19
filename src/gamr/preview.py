@@ -25,6 +25,7 @@ class PreviewController:
         self.previewed_path: Path | None = None
         self.previewed_git_status: GitStatus | None = None
         self.scroll_positions: dict[Path, int] = {}
+        self._known_hunks: dict[Path, set[int]] = {}  # path → seen hunk start lines
 
     def on_node_highlighted(self, entry: FileEntry | None, pane: PreviewPane) -> None:
         """Handle user navigating to a new file."""
@@ -37,8 +38,19 @@ class PreviewController:
             self.scroll_positions[self.previewed_path] = pane.get_source_line_at_scroll()
         self.previewed_path = entry.path
         self.previewed_git_status = entry.git_status
+        # Seed known hunks so follow mode can detect genuinely new changes
+        self._snapshot_hunks(entry)
         saved = self.scroll_positions.get(entry.path, 0)
         self.render(entry, pane, restore_line=saved)
+
+    def _snapshot_hunks(self, entry: FileEntry) -> None:
+        """Record current diff hunks for a file so we can detect new ones later."""
+        if entry.git_status and self._git.is_git_repo():
+            diff = self._git.get_diff(entry.path)
+            if diff:
+                self._known_hunks[entry.path] = {int(m.group(1)) for m in re.finditer(r"@@ [^+]*\+(\d+)", diff)}
+                return
+        self._known_hunks[entry.path] = set()
 
     def render(
         self,
@@ -77,23 +89,30 @@ class PreviewController:
         pane.show_message(message)
 
     def show_followed_path(self, path: Path, pane: PreviewPane, diff_mode: DiffMode) -> None:
-        """Update preview for a followed file; scroll to last hunk only if off-screen."""
+        """Update preview for a followed file; scroll to new hunks only if off-screen."""
         entry = self._file_index.entries.get(path)
         if not entry or not self.is_previewable(entry):
             return
 
-        # Find the last diff hunk (most likely the newest change)
-        target_line = 0
+        # Extract current hunk start lines from the diff
+        current_hunks: set[int] = set()
         if entry.git_status and self._git.is_git_repo():
             diff = self._git.get_diff(path)
             if diff:
-                for m in re.finditer(r"@@ [^+]*\+(\d+)", diff):
-                    target_line = int(m.group(1))
+                current_hunks = {int(m.group(1)) for m in re.finditer(r"@@ [^+]*\+(\d+)", diff)}
 
-        # If the target is already visible, just re-render in place (no scroll jump)
+        # Identify new hunks (not seen before for this path)
+        previously_known = self._known_hunks.get(path, set())
+        new_hunks = current_hunks - previously_known
+        self._known_hunks[path] = current_hunks
+
+        # Pick scroll target: newest new hunk, or 0 (no scroll) if none
+        target_line = max(new_hunks) if new_hunks else 0
+
+        # Only scroll if target is off-screen
         already_visible = target_line > 0 and pane.is_source_line_visible(target_line)
         pane.invalidate()
-        if already_visible:
+        if target_line == 0 or already_visible:
             current_line = pane.get_source_line_at_scroll()
             self.render(entry, pane, diff_mode=diff_mode, scroll_to_top=False, restore_line=current_line)
         else:
