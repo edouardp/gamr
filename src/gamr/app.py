@@ -268,12 +268,17 @@ class GamrApp(App):
         # Restore cursor to the currently previewed file
         if self._preview.previewed_path:
             tree.restore_cursor(self._preview.previewed_path)
-        if self._follow_mode and changed_paths:
+        if self._has_modal():
+            # Side-by-side is open: don't follow to a new file, but live-update
+            # the modal if the file it's viewing changed on disk.
+            self._refresh_modal_if_needed(changed_paths, git_changed)
+        elif self._follow_mode and changed_paths:
             # Follow mode handles preview — skip normal refresh to avoid restoring old scroll
             pass
         else:
             self._refresh_preview_if_needed(changed_paths, git_changed)
-        self._handle_follow_mode(changed_paths, tree)
+        if not self._has_modal():
+            self._handle_follow_mode(changed_paths, tree)
         self._restart_background_workers(tree, changed_paths, git_changed)
 
     def _rebuild_and_reload_tree(self, tree: FileTreeTable, collapsed: set[str]) -> None:
@@ -319,6 +324,17 @@ class GamrApp(App):
         except OSError:
             new_content = ""
         screen.refresh_content(diff, old_content, new_content)
+
+    def _refresh_modal_if_needed(self, changed_paths: list[Path] | None, git_changed: bool) -> None:
+        """Live-update the side-by-side modal if the viewed file changed on disk."""
+        if not self._preview.previewed_path:
+            return
+        entry = self._file_index.entries.get(self._preview.previewed_path)
+        if not entry:
+            return
+        file_content_changed = changed_paths and self._preview.previewed_path in set(changed_paths)
+        if file_content_changed or git_changed:
+            self._refresh_side_by_side(entry)
 
     def _handle_follow_mode(self, changed_paths: list[Path] | None, tree: FileTreeTable) -> None:
         """In follow mode, jump cursor to the last changed file."""
