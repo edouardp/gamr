@@ -14,6 +14,10 @@ from gamr.widgets.preview_pane import PreviewPane
 
 
 async def test_d_cycles_diff_mode_forward(tree_repo: Path) -> None:
+    # Testing: 'd' key advances the diff mode to the next in the cycle.
+    # Input: alpha.py selected (has diff), press 'd'.
+    # Expected: diff mode changes from initial to the next mode.
+    # Asserts: the diff mode cycling advances forward on 'd' press.
     """
     Start state:  preview showing alpha.py in initial diff mode
     Action:       press 'd'
@@ -36,6 +40,10 @@ async def test_d_cycles_diff_mode_forward(tree_repo: Path) -> None:
 
 
 async def test_D_cycles_diff_mode_backward(tree_repo: Path) -> None:
+    # Testing: 'D' key cycles the diff mode backward (reverse direction).
+    # Input: advance mode twice with 'd', then go back once with 'D'.
+    # Expected: final mode equals the mode after the first 'd'.
+    # Asserts: reverse cycling correctly undoes one forward step.
     """
     Start state:  preview in some diff mode
     Actions:      'd' twice (advance), then 'D' once (go back)
@@ -61,6 +69,10 @@ async def test_D_cycles_diff_mode_backward(tree_repo: Path) -> None:
 
 
 async def test_diff_mode_cycles_through_preferences(tree_repo: Path) -> None:
+    # Testing: pressing 'd' N times (N = number of modes) returns to the start.
+    # Input: press 'd' for each mode in the preferences cycle.
+    # Expected: final mode equals the starting mode (full cycle).
+    # Asserts: the mode list is circular and wraps correctly.
     """
     Start state:  any diff mode
     Action:       press 'd' N times (where N = number of modes in preferences)
@@ -85,6 +97,10 @@ async def test_diff_mode_cycles_through_preferences(tree_repo: Path) -> None:
 
 
 async def test_scroll_preserved_across_diff_mode_switch(tree_repo: Path) -> None:
+    # Testing: scroll position (by source line) is preserved across a full diff mode cycle.
+    # Input: note the source line at scroll position, cycle through all modes and back.
+    # Expected: source line at scroll position is the same before and after.
+    # Asserts: mode switching translates scroll offsets correctly between different row layouts.
     """
     Start state:  preview scrolled to source line X in one diff mode
     Action:       cycle through all modes and back

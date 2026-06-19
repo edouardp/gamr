@@ -12,6 +12,10 @@ from gamr.services.git_provider import DulwichGitProvider
 
 
 def test_build_index_with_git(tmp_path: Path) -> None:
+    # Testing: FileIndex.build() merges scanner results with git status.
+    # Input: git repo with a.py (committed then modified) and b.txt (untracked).
+    # Expected: a.py has MODIFIED status, b.txt has UNTRACKED; diff stats deferred until update_diff_stats.
+    # Asserts: build() correctly pairs filesystem entries with git status and diff stats are lazy-loaded.
     repo = Repo.init(str(tmp_path))
     (tmp_path / "a.py").write_text("x = 1\n")
     porcelain.add(repo, paths=["a.py"])
@@ -37,6 +41,10 @@ def test_build_index_with_git(tmp_path: Path) -> None:
 
 
 def test_build_index_no_git(tmp_path: Path) -> None:
+    # Testing: FileIndex.build() with NullGitProvider (non-git directory).
+    # Input: directory with one file, NullGitProvider as git backend.
+    # Expected: one entry returned with size > 0 and git_status=None.
+    # Asserts: the index works without git and doesn't set any git status.
     (tmp_path / "file.txt").write_text("data")
 
     scanner = FileScanner(tmp_path)
@@ -53,6 +61,10 @@ def test_build_index_no_git(tmp_path: Path) -> None:
 
 
 def test_build_index_keeps_deleted_git_files(tmp_path: Path) -> None:
+    # Testing: deleted files (committed then removed from disk) appear in the index.
+    # Input: git repo with deleted.txt committed then unlinked.
+    # Expected: index contains deleted.txt with GitStatus.DELETED.
+    # Asserts: git-tracked deletions are shown in the file list (not silently omitted).
     repo = Repo.init(str(tmp_path))
     deleted = tmp_path / "deleted.txt"
     deleted.write_text("old\n")
@@ -67,6 +79,10 @@ def test_build_index_keeps_deleted_git_files(tmp_path: Path) -> None:
 
 
 def test_update_blame(tmp_path: Path) -> None:
+    # Testing: update_blame populates last_author and last_git_modified on a file entry.
+    # Input: git repo with a.py committed by "Bob".
+    # Expected: entry.last_author == "Bob" and last_git_modified is set.
+    # Asserts: blame metadata is correctly extracted from git history.
     repo = Repo.init(str(tmp_path))
     (tmp_path / "a.py").write_text("x = 1\n")
     porcelain.add(repo, paths=["a.py"])

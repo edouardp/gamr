@@ -7,6 +7,10 @@ from gamr.state import AppState
 
 
 def test_invalid_semantic_state_falls_back_to_defaults(tmp_path: Path, monkeypatch) -> None:
+    # Testing: AppState.load handles invalid enum values in persisted state.
+    # Input: state file with view_mode="invalid" and active_statuses=["also-invalid"].
+    # Expected: defaults applied — view_mode="tree", active_filter_ids=empty set.
+    # Asserts: corrupted state doesn't crash the app; graceful fallback to defaults.
     state_file = tmp_path / ".gamrstate"
     state_file.write_text(
         json.dumps(
@@ -25,6 +29,10 @@ def test_invalid_semantic_state_falls_back_to_defaults(tmp_path: Path, monkeypat
 
 
 def test_non_object_state_falls_back_to_defaults(tmp_path: Path, monkeypatch) -> None:
+    # Testing: AppState.load handles non-object JSON (e.g., a JSON array).
+    # Input: state file containing "[]" (valid JSON but wrong type).
+    # Expected: defaults applied — view_mode="tree".
+    # Asserts: unexpected JSON structures don't crash deserialization.
     state_file = tmp_path / ".gamrstate"
     state_file.write_text("[]")
 
@@ -34,6 +42,10 @@ def test_non_object_state_falls_back_to_defaults(tmp_path: Path, monkeypatch) ->
 
 
 def test_state_migrates_legacy_statuses_to_filter_ids(tmp_path: Path) -> None:
+    # Testing: AppState.from_dict migrates old "active_statuses" format to "active_filters".
+    # Input: dict with active_statuses=["M"] (legacy format).
+    # Expected: active_filter_ids={"modified"}, serialized as active_filters; no active_statuses key.
+    # Asserts: old persisted state is transparently upgraded to the new filter ID scheme.
     state = AppState.from_dict(
         tmp_path,
         {

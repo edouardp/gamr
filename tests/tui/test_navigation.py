@@ -16,6 +16,10 @@ from gamr.widgets.file_tree_table import FileTreeTable
 
 
 async def test_down_arrow_moves_cursor(tree_repo: Path) -> None:
+    # Testing: down arrow key moves the tree cursor down one row.
+    # Input: tree with multiple rows, cursor at row 0, press ↓.
+    # Expected: cursor moves to row 1.
+    # Asserts: basic keyboard navigation moves cursor incrementally.
     """
     Start state:  cursor on row 0 (first item)
     Action:       press ↓
@@ -36,6 +40,10 @@ async def test_down_arrow_moves_cursor(tree_repo: Path) -> None:
 
 
 async def test_j_moves_cursor_down(tree_repo: Path) -> None:
+    # Testing: vim 'j' key moves the tree cursor down one row.
+    # Input: tree with multiple rows, cursor at row 0, press 'j'.
+    # Expected: cursor moves to row 1.
+    # Asserts: vim-style navigation works as an alias for ↓.
     """
     Same as ↓ — vim 'j' key should move cursor down one row.
 
@@ -53,6 +61,10 @@ async def test_j_moves_cursor_down(tree_repo: Path) -> None:
 
 
 async def test_k_moves_cursor_up(tree_repo: Path) -> None:
+    # Testing: vim 'k' key moves the tree cursor up one row.
+    # Input: cursor moved to row 2, then press 'k'.
+    # Expected: cursor moves to row 1.
+    # Asserts: vim-style upward navigation works correctly.
     """
     Start state:  cursor on row 2
     Action:       press 'k'
@@ -76,6 +88,10 @@ async def test_k_moves_cursor_up(tree_repo: Path) -> None:
 
 
 async def test_right_expands_directory(tree_repo: Path) -> None:
+    # Testing: right arrow expands a collapsed directory.
+    # Input: cursor on src/ (collapsed), press →.
+    # Expected: row count increases (children become visible).
+    # Asserts: → key triggers directory expansion.
     """
     Start state:  cursor on src/ (collapsed)
     Action:       press →
@@ -102,6 +118,10 @@ async def test_right_expands_directory(tree_repo: Path) -> None:
 
 
 async def test_left_collapses_directory(tree_repo: Path) -> None:
+    # Testing: left arrow collapses an expanded directory.
+    # Input: cursor on src/ (expanded with children visible), press ←.
+    # Expected: row count decreases (children hidden).
+    # Asserts: ← key triggers directory collapse.
     """
     Start state:  cursor on src/ (expanded, children visible)
     Action:       press ←
@@ -128,6 +148,10 @@ async def test_left_collapses_directory(tree_repo: Path) -> None:
 
 
 async def test_left_on_file_collapses_parent(tree_repo: Path) -> None:
+    # Testing: left arrow on a file collapses its parent directory.
+    # Input: cursor on alpha.py (inside expanded src/), press ←.
+    # Expected: src/ collapses, row count drops, cursor moves to src/.
+    # Asserts: ← on a file triggers parent collapse (desktop-style navigation).
     """
     Start state:  cursor on alpha.py (inside expanded src/)
     Action:       press ←
@@ -153,6 +177,10 @@ async def test_left_on_file_collapses_parent(tree_repo: Path) -> None:
 
 
 async def test_expand_collapse_preserves_cursor(tree_repo: Path) -> None:
+    # Testing: collapse then expand keeps cursor on the same directory row.
+    # Input: cursor on src/, press ← (collapse) then → (expand).
+    # Expected: cursor stays on the same row index throughout.
+    # Asserts: expand/collapse operations don't shift the cursor position.
     """
     Start state:  cursor on src/ (expanded)
     Actions:      ← (collapse), then → (expand)
@@ -182,6 +210,10 @@ async def test_expand_collapse_preserves_cursor(tree_repo: Path) -> None:
 
 
 async def test_space_toggles_directory(tree_repo: Path) -> None:
+    # Testing: space key toggles directory expand/collapse.
+    # Input: cursor on expanded src/, press space (collapse), space again (expand).
+    # Expected: first space reduces rows, second restores original count.
+    # Asserts: space is a toggle that alternates between collapsed and expanded states.
     """
     Start state:  cursor on src/ (expanded)
     Action:       press space (toggle), then space again
@@ -212,6 +244,10 @@ async def test_space_toggles_directory(tree_repo: Path) -> None:
 
 
 async def test_ensure_visible_expands_collapsed_ancestor(tree_repo: Path) -> None:
+    # Testing: ensure_visible expands collapsed ancestor directories to reveal a file.
+    # Input: src/ collapsed (alpha.py hidden), call ensure_visible(alpha.py).
+    # Expected: src/ expands and alpha.py becomes a visible row.
+    # Asserts: programmatic visibility requests auto-expand parents as needed.
     """
     Start state:  src/ is collapsed
     Action:       call ensure_visible(src/alpha.py)
@@ -241,6 +277,10 @@ async def test_ensure_visible_expands_collapsed_ancestor(tree_repo: Path) -> Non
 
 
 async def test_ensure_visible_noop_when_already_visible(tree_repo: Path) -> None:
+    # Testing: ensure_visible is a no-op when the file is already visible.
+    # Input: src/ expanded (alpha.py visible), call ensure_visible(alpha.py).
+    # Expected: row count unchanged.
+    # Asserts: no redundant expand when target is already in the rendered tree.
     """
     Start state:  src/ is expanded, alpha.py is visible
     Action:       call ensure_visible(src/alpha.py)
@@ -262,6 +302,10 @@ async def test_ensure_visible_noop_when_already_visible(tree_repo: Path) -> None
 
 
 async def test_follow_mode_expands_collapsed_dir(tree_repo: Path) -> None:
+    # Testing: follow mode auto-expands collapsed directories when a file inside changes.
+    # Input: src/ collapsed, follow mode ON, then alpha.py changes on disk.
+    # Expected: src/ expands and cursor moves to alpha.py.
+    # Asserts: follow mode integrates with expand logic to track live changes.
     """
     Start state:  follow mode ON, src/ is collapsed
     Action:       a file inside src/ changes on disk

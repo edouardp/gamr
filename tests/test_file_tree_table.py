@@ -21,6 +21,10 @@ class TreeApp(App):
 
 
 async def test_tree_loads_entries() -> None:
+    # Testing: FileTreeTable populates rows from a list of FileEntry objects.
+    # Input: two files (src/main.py and README.md) under /root.
+    # Expected: 3 rows rendered (src/ directory + main.py + README.md).
+    # Asserts: entries are correctly grouped into tree nodes including synthetic directory rows.
     app = TreeApp()
     async with app.run_test() as pilot:
         tree = app.query_one(FileTreeTable)
@@ -43,6 +47,10 @@ async def test_tree_loads_entries() -> None:
 
 
 async def test_tree_has_proper_columns() -> None:
+    # Testing: FileTreeTable creates the correct default column set.
+    # Input: one modified file entry loaded into the table.
+    # Expected: 6 columns (Name, St, +/-, Size, Rows, Modified).
+    # Asserts: the column layout matches the expected schema for git-tracked files.
     app = TreeApp()
     async with app.run_test() as pilot:
         tree = app.query_one(FileTreeTable)
@@ -64,6 +72,10 @@ async def test_tree_has_proper_columns() -> None:
 
 
 async def test_toggle_collapse() -> None:
+    # Testing: collapsing a directory hides its children from the tree.
+    # Input: two files under src/ (3 rows total), then toggle collapse on src/ directory row.
+    # Expected: row count drops from 3 to 1 (only the collapsed dir row remains).
+    # Asserts: action_toggle_node properly hides child rows.
     app = TreeApp()
     async with app.run_test() as pilot:
         tree = app.query_one(FileTreeTable)
@@ -87,6 +99,10 @@ async def test_toggle_collapse() -> None:
 
 
 async def test_restore_cursor_can_suppress_highlight_event() -> None:
+    # Testing: restore_cursor moves cursor to a target path without emitting spurious events.
+    # Input: two files loaded, clear event list, then restore_cursor to b.py.
+    # Expected: cursor lands on b.py (correct entry selected).
+    # Asserts: programmatic cursor restoration targets the right row.
     app = TreeApp()
     async with app.run_test() as pilot:
         tree = app.query_one(FileTreeTable)

@@ -17,6 +17,10 @@ from gamr.widgets.toolbar import Toolbar
 
 
 async def test_g_toggles_modified_filter(tree_repo: Path) -> None:
+    # Testing: 'g' key toggles the modified/untracked file filter on and off.
+    # Input: tree with mix of modified and clean files, press 'g' twice.
+    # Expected: first 'g' reduces visible rows to only modified; second 'g' restores all.
+    # Asserts: the toggle filters and un-filters correctly with proper toolbar state.
     """
     Start state:  all files visible (no filter)
     Action:       press 'g' (toggle modified filter ON)
@@ -53,6 +57,10 @@ async def test_g_toggles_modified_filter(tree_repo: Path) -> None:
 
 
 async def test_ctrl_f_focuses_search_input(tree_repo: Path) -> None:
+    # Testing: '/' key moves focus to the search input field.
+    # Input: tree has focus, press '/'.
+    # Expected: focused widget is the search-input.
+    # Asserts: the search shortcut correctly transfers focus for fuzzy filtering.
     """
     Start state:  tree has focus (default after launch)
     Action:       press /
@@ -73,6 +81,10 @@ async def test_ctrl_f_focuses_search_input(tree_repo: Path) -> None:
 
 
 async def test_filter_preserves_collapsed_dirs(tree_repo: Path) -> None:
+    # Testing: collapsed directory state survives a filter toggle round-trip.
+    # Input: docs/ collapsed, then 'g' ON then 'g' OFF.
+    # Expected: docs/ remains in collapsed_dirs after round-trip.
+    # Asserts: filtering doesn't lose user's manual expand/collapse state.
     """
     Start state:  docs/ is collapsed by user
     Action:       toggle 'g' ON then OFF

@@ -15,6 +15,10 @@ from gamr.widgets.preview_pane import PreviewPane
 
 
 async def test_tab_switches_focus_to_preview(tree_repo: Path) -> None:
+    # Testing: tab key toggles focus between tree and preview panes.
+    # Input: tree has focus, press tab (→ preview), press tab again (→ tree).
+    # Expected: focus alternates between the two panes.
+    # Asserts: tab-based focus switching works bidirectionally.
     """
     Start state:  tree pane has focus (default)
     Action:       press tab
@@ -48,6 +52,10 @@ async def test_tab_switches_focus_to_preview(tree_repo: Path) -> None:
 
 
 async def test_j_k_scroll_preview_when_focused(tree_repo: Path) -> None:
+    # Testing: j/k keys scroll the preview pane when it has focus.
+    # Input: select alpha.py, tab to preview, press 'j'.
+    # Expected: preview pane has focus (ready for scroll input).
+    # Asserts: focus transfer enables vim-style scrolling in the preview.
     """
     Start state:  file selected, preview showing content, tree has focus
     Action:       tab to preview, then press 'j'
@@ -72,6 +80,10 @@ async def test_j_k_scroll_preview_when_focused(tree_repo: Path) -> None:
 
 
 async def test_loading_clears_on_file_switch(tmp_path: Path) -> None:
+    # Testing: loading indicator clears when switching from a large file to a small one.
+    # Input: select large.txt (60KB, triggers async), then select small.txt.
+    # Expected: preview.loading is False after switching to small file.
+    # Asserts: the loading state resets properly and doesn't stick across selections.
     """
     Start state:  large file selected → loading indicator shown
     Action:       select a small file
@@ -112,6 +124,10 @@ async def test_loading_clears_on_file_switch(tmp_path: Path) -> None:
 
 
 async def test_binary_file_shows_message(tmp_path: Path) -> None:
+    # Testing: binary files show a message dialog instead of crashing.
+    # Input: data.bin with null bytes selected in the tree.
+    # Expected: #preview-message element is visible (not hidden).
+    # Asserts: binary file detection triggers the message overlay gracefully.
     """
     Start state:  binary file selected
     Expected:     preview shows a centered message dialog (not a crash)
@@ -143,6 +159,10 @@ async def test_binary_file_shows_message(tmp_path: Path) -> None:
 
 
 async def test_preview_shows_file_content(tree_repo: Path) -> None:
+    # Testing: preview pane displays the content of the selected file.
+    # Input: main.py selected (contains "print('hi')").
+    # Expected: rendered preview content includes "print".
+    # Asserts: file content is loaded and rendered in the preview widget.
     """
     Start state:  main.py selected (contains "print('hi')")
     Expected:     preview content includes the file text
