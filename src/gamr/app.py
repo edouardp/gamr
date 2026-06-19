@@ -117,7 +117,7 @@ class GamrApp(App):
         yield Footer()
 
     def on_mount(self) -> None:
-        # --- Initialize services ---
+        # --- Initialize services (cheap object construction) ---
         git = DulwichGitProvider(self.target_path)
         if not git.is_git_repo():
             git = NullGitProvider()
@@ -125,17 +125,40 @@ class GamrApp(App):
         self._git = git
         self._scanner = scanner
         self._file_index = FileIndex(scanner, git)
-        self._all_entries = self._file_index.build()
 
         # --- Restore widget state from persisted session ---
         tree = self.query_one(FileTreeTable)
-        self._update_global_mtime_range(tree)
         toolbar = self.query_one(Toolbar)
         split = self.query_one(HorizontalSplit)
         self._state.apply_to_widgets(tree, toolbar, split)
         self.query_one(PreviewPane).query_one(DiffOverview).use_braille = self._state.use_braille
         self.query_one(PreviewPane).query_one(DiffOverview).use_quadrant = self._state.use_quadrant
         self.query_one(PreviewPane).query_one(DiffOverview).use_sextant = self._state.use_sextant
+
+        if not self._git.is_git_repo():
+            tree.show_status = False
+            tree.show_lines = False
+
+        # --- Show loading state and kick off async load ---
+        self.query_one(PreviewPane).show_message("Scanning files…", title="⏳ Loading")
+        tree.focus()
+        self._initial_load()
+
+    @work(thread=True, group="init")
+    def _initial_load(self) -> None:
+        """Background worker: scan files + git status, then populate the tree."""
+        worker = get_current_worker()
+        entries = self._file_index.build_fast()
+        if worker.is_cancelled:
+            return
+        self.call_from_thread(self._on_initial_load_complete, entries)
+
+    def _on_initial_load_complete(self, entries: list[FileEntry]) -> None:
+        """Main-thread callback: populate tree with initial data, start background workers."""
+        self._all_entries = entries
+        tree = self.query_one(FileTreeTable)
+        self._update_global_mtime_range(tree)
+        toolbar = self.query_one(Toolbar)
         filtered = self._apply_filters(toolbar.active_statuses, toolbar.search_query)
         tree.load_entries(
             filtered,
@@ -154,16 +177,13 @@ class GamrApp(App):
         )
         self._poll_filesystem()
 
-        # --- Git-specific UI adjustments ---
-        if not self._git.is_git_repo():
-            tree.show_status = False
-            tree.show_lines = False
-        else:
+        # --- Kick off deferred background workers ---
+        self._load_line_counts()
+        if self._git.is_git_repo():
             self._load_diff_stats()
             if tree.show_author or tree.show_git_time:
                 self._load_blame_data()
 
-        tree.focus()
         self.set_interval(TIMESTAMP_REFRESH_INTERVAL, self._refresh_timestamps)
         self._update_status_bar()
 
@@ -228,6 +248,7 @@ class GamrApp(App):
 
         # Cancel background workers that reference old entries before rebuilding
         self.workers.cancel_group(self, "diff_stats")
+        self.workers.cancel_group(self, "line_counts")
         if git_changed:
             self.workers.cancel_group(self, "blame")
             # Invalidate blame cache for changed files so they get re-blamed
@@ -305,7 +326,9 @@ class GamrApp(App):
     def _restart_background_workers(
         self, tree: FileTreeTable, changed_paths: list[Path] | None, git_changed: bool
     ) -> None:
-        """Re-trigger diff stats and blame workers after changes."""
+        """Re-trigger background workers after changes."""
+        if changed_paths:
+            self._load_line_counts()
         if self._git.is_git_repo() and (git_changed or changed_paths):
             self._load_diff_stats()
             if tree.show_author or tree.show_git_time:
@@ -497,6 +520,14 @@ class GamrApp(App):
             if entry.git_status:
                 self._file_index.update_diff_stats(path)
         if not worker.is_cancelled:
+            self.call_from_thread(self._refresh_tree_labels)
+
+    @work(thread=True, group="line_counts")
+    def _load_line_counts(self) -> None:
+        """Populate row_count for all files in the background."""
+        worker = get_current_worker()
+        updated = self._file_index.fill_line_counts()
+        if not worker.is_cancelled and updated:
             self.call_from_thread(self._refresh_tree_labels)
 
     def _refresh_tree_labels(self) -> None:
