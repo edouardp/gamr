@@ -26,7 +26,7 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.css.query import NoMatches
-from textual.widgets import Footer, Header
+from textual.widgets import Footer, Header, LoadingIndicator
 from textual.worker import get_current_worker
 
 from gamr.commands import GamrCommands
@@ -110,6 +110,7 @@ class GamrApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Toolbar()
+        yield LoadingIndicator(id="startup-loading")
         with HorizontalSplit(id="main"):
             yield FileTreeTable(id="left-pane")
             yield SplitHandle()
@@ -140,7 +141,7 @@ class GamrApp(App):
             tree.show_lines = False
 
         # --- Show loading state and kick off async load ---
-        self.query_one(PreviewPane).show_message("Scanning files…", title="⏳ Loading")
+        self.query_one(HorizontalSplit).display = False
         tree.focus()
         self._initial_load()
 
@@ -155,6 +156,10 @@ class GamrApp(App):
 
     def _on_initial_load_complete(self, entries: list[FileEntry]) -> None:
         """Main-thread callback: populate tree with initial data, start background workers."""
+        # Swap loading indicator for the main content
+        self.query_one("#startup-loading", LoadingIndicator).remove()
+        self.query_one(HorizontalSplit).display = True
+
         self._all_entries = entries
         tree = self.query_one(FileTreeTable)
         self._update_global_mtime_range(tree)
