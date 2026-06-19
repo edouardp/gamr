@@ -33,6 +33,7 @@ from gamr.commands import GamrCommands
 from gamr.config import TIMESTAMP_REFRESH_INTERVAL, WATCHER_POLL_INTERVAL
 from gamr.models import DiffMode, FileEntry, GitStatus
 from gamr.preferences import Preferences
+from gamr.preview import PreviewController
 from gamr.services.file_index import FileIndex
 from gamr.services.file_scanner import FileScanner
 from gamr.services.filter import filter_by_status, fuzzy_filter
@@ -103,9 +104,7 @@ class GamrApp(App):
         self._state = AppState.load(self.target_path)
         self._diff_mode: DiffMode = self._state.diff_mode
         self._follow_mode: bool = False
-        self._previewed_path: Path | None = None
-        self._previewed_git_status = None
-        self._scroll_positions: dict[Path, int] = {}  # path → source line
+        self._preview: PreviewController | None = None  # initialized in on_mount
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -126,6 +125,7 @@ class GamrApp(App):
         self._git = git
         self._scanner = scanner
         self._file_index = FileIndex(scanner, git)
+        self._preview = PreviewController(git, self._file_index)
 
         # --- Restore widget state from persisted session ---
         tree = self.query_one(FileTreeTable)
@@ -173,7 +173,7 @@ class GamrApp(App):
         if self._state.selected_path:
             tree.restore_cursor(Path(self._state.selected_path))
             if self._state.scroll_line > 1:
-                self._scroll_positions[Path(self._state.selected_path)] = self._state.scroll_line
+                self._preview.scroll_positions[Path(self._state.selected_path)] = self._state.scroll_line
 
         # --- Start background services ---
         self._scanner.start_watching(
@@ -207,8 +207,8 @@ class GamrApp(App):
         preview = self.query_one(PreviewPane)
         preview.syntax_theme = "monokai" if is_dark else "default"
         # Re-render current preview with new theme
-        if self._previewed_path:
-            entry = self._file_index.entries.get(self._previewed_path)
+        if self._preview.previewed_path:
+            entry = self._file_index.entries.get(self._preview.previewed_path)
             if entry and self._is_previewable(entry):
                 preview.invalidate()
                 source_line = preview.get_source_line_at_scroll()
@@ -266,8 +266,8 @@ class GamrApp(App):
 
         self._rebuild_and_reload_tree(tree, collapsed)
         # Restore cursor to the currently previewed file
-        if self._previewed_path:
-            tree.restore_cursor(self._previewed_path)
+        if self._preview.previewed_path:
+            tree.restore_cursor(self._preview.previewed_path)
         if self._follow_mode and changed_paths:
             # Follow mode handles preview — skip normal refresh to avoid restoring old scroll
             pass
@@ -286,21 +286,23 @@ class GamrApp(App):
 
     def _refresh_preview_if_needed(self, changed_paths: list[Path] | None, git_changed: bool) -> None:
         """Re-render preview if the previewed file's content or git status changed."""
-        if not self._previewed_path:
+        if not self._preview.previewed_path:
             return
-        entry = self._file_index.entries.get(self._previewed_path)
-        file_content_changed = changed_paths and self._previewed_path in set(changed_paths)
-        git_status_changed = git_changed and entry and entry.git_status != self._previewed_git_status
+        preview = self.query_one(PreviewPane)
+        entry = self._file_index.entries.get(self._preview.previewed_path)
+        file_content_changed = changed_paths and self._preview.previewed_path in set(changed_paths)
+        git_status_changed = git_changed and entry and entry.git_status != self._preview.previewed_git_status
         if (file_content_changed or git_status_changed) and entry and self._is_previewable(entry):
-            preview = self.query_one(PreviewPane)
             source_line = preview.get_source_line_at_scroll()
             preview.invalidate()
-            self._show_preview_for(entry, scroll_to_top=False, restore_line=source_line)
+            self._preview.render(
+                entry, preview, diff_mode=self._diff_mode, scroll_to_top=False, restore_line=source_line
+            )
             # Refresh side-by-side modal if open
             if self._has_modal():
                 self._refresh_side_by_side(entry)
         if entry:
-            self._previewed_git_status = entry.git_status
+            self._preview.previewed_git_status = entry.git_status
 
     def _refresh_side_by_side(self, entry: FileEntry) -> None:
         """Refresh the side-by-side modal with updated file content."""
@@ -325,7 +327,7 @@ class GamrApp(App):
         follow_path = changed_paths[-1]
         tree.ensure_visible(follow_path)
         tree.restore_cursor(follow_path)
-        self._previewed_path = follow_path
+        self._preview.previewed_path = follow_path
         self._show_followed_path(follow_path)
 
     def _restart_background_workers(
@@ -349,29 +351,13 @@ class GamrApp(App):
 
     def on_file_tree_table_node_highlighted(self, event: FileTreeTable.NodeHighlighted) -> None:
         """Domain decision: only update preview when user navigates to a new file."""
-        entry = event.entry
-        if entry is None or not self._is_previewable(entry):
-            return
-        if entry.path == self._previewed_path:
-            return
-        # Save scroll position of the file we're leaving
         try:
-            preview = self.query_one(PreviewPane)
-            if self._previewed_path:
-                self._scroll_positions[self._previewed_path] = preview.get_source_line_at_scroll()
+            self._preview.on_node_highlighted(event.entry, self.query_one(PreviewPane))
         except NoMatches:
             pass
-        self._previewed_path = entry.path
-        self._previewed_git_status = entry.git_status
-        try:
-            saved = self._scroll_positions.get(entry.path, 0)
-            self._show_preview_for(entry, restore_line=saved)
-        except NoMatches:
-            pass  # Preview pane may not be mounted yet during startup
 
     def _show_preview_for(self, entry: FileEntry, *, scroll_to_top: bool = True, restore_line: int = 0) -> None:
         """Render file content or diff in the preview pane based on current diff mode."""
-        # For files > 50KB, render in background to avoid blocking the UI
         try:
             size = entry.path.stat().st_size if entry.path.exists() else 0
         except OSError:
@@ -384,7 +370,13 @@ class GamrApp(App):
             preview.loading = True
             self._render_preview_async(entry, scroll_to_top=scroll_to_top, restore_line=restore_line)
             return
-        self._render_preview_sync(entry, scroll_to_top=scroll_to_top, restore_line=restore_line)
+        self._preview.render(
+            entry,
+            self.query_one(PreviewPane),
+            diff_mode=self._diff_mode,
+            scroll_to_top=scroll_to_top,
+            restore_line=restore_line,
+        )
 
     @work(thread=True, group="preview", exclusive=True)
     def _render_preview_async(self, entry: FileEntry, *, scroll_to_top: bool, restore_line: int) -> None:
@@ -392,12 +384,11 @@ class GamrApp(App):
         worker = get_current_worker()
         path = entry.path
 
-        # Pre-read file in background to check binary/errors before main-thread render
         try:
             raw = path.read_bytes() if path.exists() else b""
         except OSError:
             if not worker.is_cancelled:
-                self.call_from_thread(self._apply_preview_error, path, "Cannot read file")
+                self.call_from_thread(self._preview.render_error, path, "Cannot read file", self.query_one(PreviewPane))
             return
 
         if worker.is_cancelled:
@@ -405,87 +396,36 @@ class GamrApp(App):
 
         if raw and b"\x00" in raw[:8192]:
             if not worker.is_cancelled:
-                self.call_from_thread(self._apply_preview_error, path, path.name)
+                self.call_from_thread(self._preview.render_error, path, path.name, self.query_one(PreviewPane))
             return
 
-        # Pre-compute diff in background (Dulwich is thread-safe)
         is_diffable = entry.git_status and self._git.is_git_repo()
         if is_diffable:
-            self._git.get_diff(entry.path)  # warms cache
+            self._git.get_diff(entry.path)
 
         if worker.is_cancelled:
             return
 
-        # Syntax highlighting (CPU-bound, the main bottleneck)
-        # Skip for files >100KB is handled in _render_highlighted
-
-        # Apply on main thread
         def _apply():
-            if worker.is_cancelled or self._previewed_path != path:
+            if worker.is_cancelled or self._preview.previewed_path != path:
                 return
             preview = self.query_one(PreviewPane)
             preview.loading = False
             preview.invalidate()
-            self._render_preview_sync(entry, scroll_to_top=scroll_to_top, restore_line=restore_line)
+            self._preview.render(
+                entry, preview, diff_mode=self._diff_mode, scroll_to_top=scroll_to_top, restore_line=restore_line
+            )
 
         self.call_from_thread(_apply)
-
-    def _apply_preview_error(self, path: Path, message: str) -> None:
-        """Show an error/info message in preview if the path is still current."""
-        if self._previewed_path != path:
-            return
-        preview = self.query_one(PreviewPane)
-        preview.loading = False
-        preview.show_message(message)
-
-    def _render_preview_sync(self, entry: FileEntry, *, scroll_to_top: bool = True, restore_line: int = 0) -> None:
-        """Render file content or diff in the preview pane based on current diff mode."""
-        preview = self.query_one(PreviewPane)
-        preview.loading = False
-        preview.show_diff = self._diff_mode
-        is_diffable = entry.git_status and self._git.is_git_repo()
-        diff = self._git.get_diff(entry.path) if is_diffable else ""
-        kwargs = {"scroll_to_top": scroll_to_top, "restore_line": restore_line}
-
-        if diff:
-            dispatch = {
-                DiffMode.UNIFIED: lambda: preview.show_diff_content(diff, path=entry.path, **kwargs),
-                DiffMode.FULL: lambda: preview.show_full_diff(entry.path, diff, **kwargs),
-                DiffMode.GUTTER: lambda: preview.show_gutter_diff(entry.path, diff, **kwargs),
-            }
-            dispatch[self._diff_mode]()
-            return
-
-        preview.show_file(entry.path, **kwargs)
 
     @staticmethod
     def _is_previewable(entry: FileEntry) -> bool:
         """Return whether an entry has file contents or a deletion diff to show."""
-        return entry.path.is_file() or entry.git_status in {
-            GitStatus.DELETED,
-            GitStatus.STAGED_DELETED,
-        }
+        return PreviewController.is_previewable(entry)
 
     def _show_followed_path(self, path: Path) -> None:
         """Force preview update for a followed file; scroll to first diff hunk."""
-        import re
-
-        entry = self._file_index.entries.get(path)
-        if not entry or not self._is_previewable(entry):
-            return
-
-        # Scroll to the first diff hunk if the file is git-modified
-        restore_line = 0
-        if entry.git_status and self._git.is_git_repo():
-            diff = self._git.get_diff(path)
-            if diff:
-                m = re.search(r"@@ [^+]*\+(\d+)", diff)
-                if m:
-                    restore_line = int(m.group(1))
-
-        preview = self.query_one(PreviewPane)
-        preview.invalidate()
-        self._show_preview_for(entry, restore_line=restore_line)
+        self._preview.show_followed_path(path, self.query_one(PreviewPane), self._diff_mode)
 
     # -------------------------------------------------------------------------
     # Background data workers
@@ -573,8 +513,8 @@ class GamrApp(App):
         self._last_filtered_paths = new_paths
 
         tree.load_entries(filtered, self.target_path, collapsed_dirs=collapsed)
-        if self._previewed_path:
-            tree.restore_cursor(self._previewed_path)
+        if self._preview.previewed_path:
+            tree.restore_cursor(self._preview.previewed_path)
         self._update_status_bar()
 
     def _update_global_mtime_range(self, tree: FileTreeTable) -> None:
@@ -637,9 +577,9 @@ class GamrApp(App):
             # change locations, not the user's original position. Use the saved
             # position from before we entered unified mode.
             if old_mode == DiffMode.UNIFIED:
-                source_line = self._scroll_positions.get(entry.path, source_line)
+                source_line = self._preview.scroll_positions.get(entry.path, source_line)
             else:
-                self._scroll_positions[entry.path] = source_line
+                self._preview.scroll_positions[entry.path] = source_line
             preview.invalidate()
             self._show_preview_for(entry, scroll_to_top=False, restore_line=source_line)
         self._update_status_bar()
@@ -745,7 +685,7 @@ class GamrApp(App):
         """Open the previewed file in $EDITOR at the current scroll position."""
         import subprocess  # nosec B404
 
-        if not self._previewed_path or not self._previewed_path.is_file():
+        if not self._preview.previewed_path or not self._preview.previewed_path.is_file():
             return
         editor = os.environ.get("VISUAL", os.environ.get("EDITOR", "vim"))
         preview = self.query_one(PreviewPane)
@@ -758,7 +698,7 @@ class GamrApp(App):
             if line > 1:
                 cmd.append(f"+{line}")
                 cmd.append("+normal! zt")
-        cmd.append(str(self._previewed_path))
+        cmd.append(str(self._preview.previewed_path))
 
         with self.suspend():
             subprocess.run(cmd)  # nosec B603
@@ -769,9 +709,9 @@ class GamrApp(App):
         import subprocess  # nosec B404
         import sys
 
-        if not self._previewed_path or not self._previewed_path.exists():
+        if not self._preview.previewed_path or not self._preview.previewed_path.exists():
             return
-        path = str(self._previewed_path)
+        path = str(self._preview.previewed_path)
         if sys.platform == "darwin":
             subprocess.Popen(["open", path])  # nosec B603 B607
         elif sys.platform == "win32":
