@@ -590,7 +590,9 @@ class PreviewPane(Widget):
         msg = self.query_one("#preview-message", Static)
         body = self.query_one("#preview-body", Horizontal)
         self.query_one("#preview-scroll", VerticalScroll).add_class("hidden")
-        self.query_one(DiffOverview).add_class("hidden")
+        overview = self.query_one(DiffOverview)
+        overview.display = False
+        overview.add_class("hidden")
         msg.border_title = title
         msg.update(message)
         msg.remove_class("hidden")
@@ -776,6 +778,7 @@ class PreviewPane(Widget):
         # Hide message widget, show content widget
         self.query_one("#preview-message", Static).add_class("hidden")
         self.query_one("#preview-scroll", VerticalScroll).remove_class("hidden")
+        self.query_one(DiffOverview).remove_class("hidden")
         self.query_one("#preview-body", Horizontal).remove_class("show-message")
         self._rendered_content = content if isinstance(content, Text) else None
         # Precompute line start offsets for O(1) highlight lookups
