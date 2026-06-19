@@ -60,9 +60,19 @@ class DulwichGitProvider(GitProvider):
         self._repo: Repo | None = None
         try:
             self._repo = Repo.discover(str(self.target_path))
-            self.repo_root = Path(self._repo.path).resolve()
+            self.repo_root = self._find_worktree_root(self.target_path)
         except Exception:
             pass
+
+    @staticmethod
+    def _find_worktree_root(start: Path) -> Path:
+        """Walk up to find the directory containing .git (file or directory)."""
+        current = start
+        while current != current.parent:
+            if (current / ".git").exists():
+                return current
+            current = current.parent
+        return start
 
     def is_git_repo(self) -> bool:
         return self._repo is not None
@@ -72,6 +82,16 @@ class DulwichGitProvider(GitProvider):
         """Return the .git directory path, or None if not a git repo."""
         if self._repo:
             return Path(self._repo.controldir())
+        return None
+
+    @property
+    def git_common_dir(self) -> Path | None:
+        """Shared git directory (same as git_dir for non-worktrees)."""
+        if self._repo:
+            try:
+                return Path(self._repo.commondir()).resolve()
+            except Exception:
+                return self.git_dir
         return None
 
     def get_ignore_filter(self) -> IgnoreFilter | None:
@@ -273,6 +293,10 @@ class NullGitProvider(GitProvider):
 
     @property
     def git_dir(self) -> Path | None:
+        return None
+
+    @property
+    def git_common_dir(self) -> Path | None:
         return None
 
     def get_status(self) -> dict[Path, GitStatus]:

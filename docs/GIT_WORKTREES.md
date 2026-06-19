@@ -43,20 +43,28 @@ This works for both layouts:
 
 ### 2. Expose `git_common_dir` (`git_provider.py`)
 
-Add a property for the shared object/ref store:
+Add a property for the shared object/ref store. `Repo.commondir()` returns the
+repo's own controldir when no `commondir` file exists, so this is safe for both
+standard repos and linked worktrees:
 
 ```python
 @property
 def git_common_dir(self) -> Path | None:
     """Shared git directory (same as git_dir for non-worktrees)."""
     if self._repo:
-        return Path(self._repo.commondir())
+        try:
+            return Path(self._repo.commondir())
+        except Exception:
+            return self.git_dir
     return None
 ```
 
 ### 3. Watch both gitdirs (`file_scanner.py`)
 
 In a worktree, ref changes (branches, tags) happen in the shared `commondir`, not the per-worktree control dir. The scanner needs to watch both:
+
+- **Per-worktree dir** (non-recursive): `HEAD`, `index` changes
+- **Common dir** (recursive): `packed-refs`, `refs/heads/*`, `refs/tags/*` changes
 
 ```python
 def start_watching(self, git_root: Path | None = None, git_common_root: Path | None = None) -> None:
@@ -66,7 +74,7 @@ def start_watching(self, git_root: Path | None = None, git_common_root: Path | N
         self._observer.schedule(git_handler, str(git_root), recursive=False)
     if git_common_root and git_common_root != git_root and git_common_root.exists():
         git_handler = _GitHandler(self.queue)
-        self._observer.schedule(git_handler, str(git_common_root), recursive=False)
+        self._observer.schedule(git_handler, str(git_common_root), recursive=True)
 ```
 
 ### 4. Wire it up (`app.py`)
@@ -100,3 +108,14 @@ self._scanner.start_watching(
 ## Scope
 
 This is a focused change — 4 files touched, no new dependencies. The `NullGitProvider` and all non-git paths are unaffected.
+
+## Test Plan
+
+Integration test using a real worktree fixture (`tests/test_worktree.py`):
+
+1. **Fixture:** Create a temp git repo, add a commit, then `git worktree add` a linked worktree.
+2. **Root detection:** Verify `DulwichGitProvider(worktree_path).repo_root` equals the worktree checkout dir.
+3. **`git_common_dir`:** Verify it points to the main repo's `.git/` (not the per-worktree dir).
+4. **Status:** Modify a file in the worktree, verify `get_status()` reports it correctly.
+5. **Diff/blame:** Verify `get_diff()` and `get_blame_info()` work from the worktree path.
+6. **Path relativization:** Verify no `ValueError` from `relative_to()` on worktree files.

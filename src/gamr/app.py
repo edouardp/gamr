@@ -148,7 +148,10 @@ class GamrApp(App):
                 self._scroll_positions[Path(self._state.selected_path)] = self._state.scroll_line
 
         # --- Start background services ---
-        self._scanner.start_watching(git_root=self._git.git_dir if self._git.is_git_repo() else None)
+        self._scanner.start_watching(
+            git_root=self._git.git_dir if self._git.is_git_repo() else None,
+            git_common_root=self._git.git_common_dir if self._git.is_git_repo() else None,
+        )
         self._poll_filesystem()
 
         # --- Git-specific UI adjustments ---

@@ -68,7 +68,7 @@ class FileScanner:
                     files.append(p)
         return files
 
-    def start_watching(self, git_root: Path | None = None) -> None:
+    def start_watching(self, git_root: Path | None = None, git_common_root: Path | None = None) -> None:
         """Start filesystem watching. Falls back to polling on failure."""
         try:
             handler = _Handler(self.root, self.queue, self._is_ignored)
@@ -77,6 +77,9 @@ class FileScanner:
             if git_root and git_root.exists():
                 git_handler = _GitHandler(self.queue)
                 self._observer.schedule(git_handler, str(git_root), recursive=False)
+            if git_common_root and git_common_root != git_root and git_common_root.exists():
+                common_handler = _GitHandler(self.queue)
+                self._observer.schedule(common_handler, str(git_common_root), recursive=True)
             self._observer.start()
         except Exception:
             # watchdog may fail on some filesystems (network mounts, etc.)
@@ -194,9 +197,13 @@ class _Handler(FileSystemEventHandler):
 
 
 class _GitHandler(FileSystemEventHandler):
-    """Watches .git directory for state changes (commits, stages, resets)."""
+    """Watches .git directory for state changes (commits, stages, resets).
 
-    _GIT_STATE_FILES = {"index", "HEAD", "COMMIT_EDITMSG"}
+    Triggers on per-worktree state files (HEAD, index) and shared ref files
+    (packed-refs, refs/*) when watching the common dir recursively.
+    """
+
+    _GIT_STATE_FILES = {"index", "HEAD", "COMMIT_EDITMSG", "packed-refs"}
 
     def __init__(self, queue: Queue[FileChange]) -> None:
         self._queue = queue
@@ -204,6 +211,6 @@ class _GitHandler(FileSystemEventHandler):
     def on_modified(self, event: FileSystemEvent) -> None:
         if event.is_directory:
             return
-        name = Path(event.src_path).name
-        if name in self._GIT_STATE_FILES:
-            self._queue.put(FileChange(Path(event.src_path), ChangeType.GIT_STATE_CHANGED))
+        p = Path(event.src_path)
+        if p.name in self._GIT_STATE_FILES or "refs" in p.parts:
+            self._queue.put(FileChange(p, ChangeType.GIT_STATE_CHANGED))
