@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 (2026-06-20)
+
+  - Git worktree support: correct working tree root detection for linked worktrees and bare-repo layouts
+  - Watch shared commondir (packed-refs, refs/) for branch/tag changes in worktrees
+  - Fix: DiffOverview visibility when toggling between message and content views
+  - Fix: expand collapsed ancestors in follow mode before selecting file
+  - Share DiffOverview widget between preview pane and side-by-side diff
+  - Show deletion marker on preceding line for changed hunks with net removals
+  - Cross-platform "Open in default app" (`O`): macOS/Linux/BSD/Windows/WSL2
+  - Updated ADRs 007, 015, 017, 022 to reflect current implementation
+  - Added AGENTS.md with repo rules for AI agents
+
 ## 0.2.5 (2026-06-14)
 
   - Fix: cycling diff mode (`d`) no longer resets overview style indicator to "off"
