@@ -27,11 +27,11 @@ async def test_tab_switches_focus_to_preview(tree_repo: Path) -> None:
     Action:       press tab again
     Expected:     tree pane gets focus back
 
-        ┌── Tree ──┐  ┌── Preview ──┐
+        ┌── Tree ───┐  ┌── Preview ──┐
         │ [focused] │  │             │    ← before tab
         └───────────┘  └─────────────┘
 
-        ┌── Tree ──┐  ┌── Preview ──┐
+        ┌── Tree ───┐  ┌── Preview ──┐
         │           │  │  [focused]  │    ← after tab
         └───────────┘  └─────────────┘
     """

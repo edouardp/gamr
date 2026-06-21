@@ -279,3 +279,43 @@ document.querySelectorAll('.copy-btn, .hero-install-copy').forEach(btn => {
   resize();
   requestAnimationFrame(step);
 })();
+
+// Features list interaction
+const featureItems = document.querySelectorAll('.features-item');
+const featureMedias = document.querySelectorAll('.features-media');
+const featureDescs = document.querySelectorAll('.features-desc p');
+
+function activateFeature(index) {
+  featureItems.forEach(el => el.classList.remove('active'));
+  featureMedias.forEach(el => el.hidden = true);
+  featureDescs.forEach(el => el.hidden = true);
+  const item = document.querySelector(`.features-item[data-feature="${index}"]`);
+  const media = document.querySelector(`.features-media[data-feature="${index}"]`);
+  const desc = document.querySelector(`.features-desc p[data-feature="${index}"]`);
+  if (item) item.classList.add('active');
+  if (media) media.hidden = false;
+  if (desc) desc.hidden = false;
+}
+
+if (featureItems.length) {
+  featureItems.forEach(item => {
+    item.addEventListener('mouseenter', () => activateFeature(item.dataset.feature));
+    item.addEventListener('click', () => activateFeature(item.dataset.feature));
+  });
+}
+
+// Lightbox
+document.querySelectorAll('.features-media img').forEach(img => {
+  img.addEventListener('click', () => {
+    const lb = document.createElement('div');
+    lb.className = 'lightbox';
+    lb.innerHTML = `<button class="lightbox-close">&times;</button><img src="${img.src}" alt="${img.alt}">`;
+    const close = () => lb.remove();
+    lb.addEventListener('click', close);
+    lb.querySelector('.lightbox-close').addEventListener('click', close);
+    document.addEventListener('keydown', function handler(e) {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', handler); }
+    });
+    document.body.appendChild(lb);
+  });
+});

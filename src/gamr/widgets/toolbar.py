@@ -28,10 +28,27 @@ def _supports_kitty_graphics() -> bool:
     """Check if the terminal supports the kitty graphics protocol."""
     import os
 
+    term = os.environ.get("TERM", "").lower()
     term_program = os.environ.get("TERM_PROGRAM", "").lower()
-    # Terminals known to support kitty graphics protocol
-    supported = ("ghostty", "kitty", "wezterm")
-    return any(name in term_program for name in supported)
+    return (
+        "KITTY_WINDOW_ID" in os.environ
+        or term == "xterm-ghostty"
+        or "GHOSTTY_RESOURCES_DIR" in os.environ
+        or "wezterm" in term_program
+    )
+
+
+# Full diacritics table from kitty protocol spec (row/column encoding)
+_ROW_COL_DIACRITICS = (
+    "\u0305\u030d\u030e\u0310\u0312\u033d\u033e\u033f"
+    "\u0346\u034a\u034b\u034c\u0350\u0351\u0352\u0357"
+    "\u035b\u0363\u0364\u0365\u0366\u0367\u0368\u0369"
+    "\u036a\u036b\u036c\u036d\u036e\u036f\u0483\u0484"
+    "\u0485\u0486\u0487\u0592\u0593\u0594\u0595\u0597"
+    "\u0598\u0599\u059c\u059d\u059e\u059f\u05a0\u05a1"
+    "\u05a8\u05a9\u05ab\u05ac\u05af\u05c4\u0610\u0611"
+    "\u0612\u0613\u0614\u0615\u0616\u0617\u0657\u0658"
+)
 
 
 def _transmit_logo_image() -> int | None:
@@ -43,30 +60,29 @@ def _transmit_logo_image() -> int | None:
     if not _supports_kitty_graphics():
         return None
 
-    # Find the logo PNG bundled with the package
     logo_path = Path(__file__).parent.parent / "logo.png"
     if not logo_path.exists():
         return None
 
-    image_id = 9999  # Fixed id for the logo
+    image_id = 42
     png_data = logo_path.read_bytes()
     encoded = base64.standard_b64encode(png_data).decode("ascii")
-
-    # Transmit in chunks of 4096, using quiet mode (q=2) to suppress responses
-    # Create a virtual placement for Unicode placeholders (U=1)
     chunks = [encoded[i : i + 4096] for i in range(0, len(encoded), 4096)]
+
+    # Transmit only (a=t), no placement yet
+    buf = []
+    for idx, chunk in enumerate(chunks):
+        is_first = idx == 0
+        is_last = idx == len(chunks) - 1
+        m = 0 if is_last else 1
+        if is_first:
+            buf.append(f"\033_Ga=t,f=100,q=2,i={image_id},m={m};{chunk}\033\\")
+        else:
+            buf.append(f"\033_Gm={m};{chunk}\033\\")
 
     try:
         fd = os.open("/dev/tty", os.O_WRONLY)
-        for idx, chunk in enumerate(chunks):
-            is_first = idx == 0
-            is_last = idx == len(chunks) - 1
-            m = 0 if is_last else 1
-            if is_first:
-                header = f"\033_Ga=T,f=100,i={image_id},q=2,U=1,c=20,r=3,m={m};"
-            else:
-                header = f"\033_Gm={m};"
-            os.write(fd, (header + chunk + "\033\\").encode())
+        os.write(fd, "".join(buf).encode())
         os.close(fd)
     except OSError:
         return None
@@ -75,42 +91,28 @@ def _transmit_logo_image() -> int | None:
 
 
 def _make_placeholder(image_id: int, cols: int, rows: int) -> str:
-    """Build a Unicode placeholder string for a kitty graphics image."""
-    # U+10EEEE is the placeholder character
-    # Row/column diacritics: U+0305 = 0, U+030D = 1, U+0310 = 2, etc.
-    row_diacritics = [
-        "\u0305",
-        "\u030d",
-        "\u0310",
-        "\u0312",
-        "\u033d",
-        "\u033e",
-        "\u033f",
-        "\u0346",
-        "\u034a",
-        "\u034b",
-    ]
-    col_diacritics = row_diacritics  # Same set for columns
-
+    """Build Unicode placeholder string for a kitty graphics virtual placement."""
     placeholder = "\U0010eeee"
-    lines = []
-    for r in range(rows):
-        row_d = row_diacritics[r] if r < len(row_diacritics) else row_diacritics[0]
-        line_chars = []
-        for c in range(cols):
-            col_d = col_diacritics[c] if c < len(col_diacritics) else col_diacritics[0]
-            line_chars.append(f"{placeholder}{row_d}{col_d}")
-        lines.append("".join(line_chars))
-    # Wrap with foreground color set to image_id (using 256-color if id < 256, else truecolor)
-    if image_id < 256:
-        color_start = f"\033[38;5;{image_id}m"
-    else:
-        r = (image_id >> 16) & 0xFF
-        g = (image_id >> 8) & 0xFF
-        b = image_id & 0xFF
-        color_start = f"\033[38;2;{r};{g};{b}m"
+    # Encode image_id as RGB foreground color (lower 24 bits)
+    r = (image_id >> 16) & 0xFF
+    g = (image_id >> 8) & 0xFF
+    b = image_id & 0xFF
+    # MSB of image_id (upper 8 bits) goes as 3rd diacritic
+    msb = (image_id >> 24) & 0xFF
+
+    color_start = f"\033[38;2;{r};{g};{b}m"
     color_end = "\033[39m"
-    return "\n".join(f"{color_start}{line}{color_end}" for line in lines)
+
+    lines = []
+    for row in range(rows):
+        row_d = _ROW_COL_DIACRITICS[row]
+        msb_d = _ROW_COL_DIACRITICS[msb]
+        line_chars = []
+        for col in range(cols):
+            col_d = _ROW_COL_DIACRITICS[col]
+            line_chars.append(f"{placeholder}{row_d}{col_d}{msb_d}")
+        lines.append(f"{color_start}{''.join(line_chars)}{color_end}")
+    return "\n".join(lines)
 
 
 # Module-level: attempt to transmit logo on import if supported
@@ -124,9 +126,8 @@ def _get_logo() -> str:
         _KITTY_LOGO_ID = _transmit_logo_image()
 
     if _KITTY_LOGO_ID is not None:
-        # Return Unicode placeholder text + taglines
-        # The placeholder occupies the left side, taglines on the right
-        return _make_placeholder(_KITTY_LOGO_ID, 16, 3)
+        # Return blank space so the sextant logo doesn't show through
+        return " \n \n "
 
     if _supports_sextants():
         return (
@@ -226,6 +227,40 @@ class Toolbar(Widget):
                 yield _StatusItem("", id="st-diff", classes="status-item")
                 yield _StatusItem("", id="st-overview", classes="status-item")
                 yield _StatusItem("", id="st-follow", classes="status-item")
+
+    def on_mount(self) -> None:
+        if _KITTY_LOGO_ID is not None:
+            self.call_after_refresh(self._place_logo_image)
+
+    def on_resize(self) -> None:
+        if _KITTY_LOGO_ID is not None:
+            self.call_after_refresh(self._place_logo_image)
+
+    def _place_logo_image(self) -> None:
+        """Place the kitty graphics image at the logo widget's screen position."""
+        if _KITTY_LOGO_ID is None:
+            return
+        logo = self.query_one("#logo", Static)
+        region = logo.region
+        if region.width < 1:
+            return
+        # Delete previous placement, then re-place
+        img_cols = 20
+        rows = region.height or 3
+        x_offset = max(0, (region.width - img_cols) // 2)
+        x = region.x + x_offset + 1  # 1-based
+        y = region.y + 1  # 1-based
+        seq = (
+            # Delete old placements of this image
+            f"\033_Ga=d,d=i,i={_KITTY_LOGO_ID},q=2;\033\\"
+            # Save cursor, position, place, restore
+            f"\033[s"
+            f"\033[{y};{x}H"
+            f"\033_Ga=p,i={_KITTY_LOGO_ID},q=2,c={img_cols},r={rows},C=1;\033\\"
+            f"\033[u"
+        )
+        if self.app._driver is not None:
+            self.app._driver.write(seq)
 
     def update_status(
         self,

@@ -831,7 +831,14 @@ def main() -> None:
     import sys
 
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else None
+    # Set terminal title before Textual takes over
+    sys.stdout.write("\033[22;0t")  # push current title to stack
+    sys.stdout.write("\033]0;gamr\007")
+    sys.stdout.flush()
     GamrApp(path=path).run()
+    # Restore previous title after Textual exits
+    sys.stdout.write("\033[23;0t")  # pop title from stack
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":
