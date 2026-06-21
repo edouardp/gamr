@@ -24,8 +24,110 @@ def _supports_sextants() -> bool:
     return any(name in term or name in term_program for name in supported)
 
 
+def _supports_kitty_graphics() -> bool:
+    """Check if the terminal supports the kitty graphics protocol."""
+    import os
+
+    term_program = os.environ.get("TERM_PROGRAM", "").lower()
+    # Terminals known to support kitty graphics protocol
+    supported = ("ghostty", "kitty", "wezterm")
+    return any(name in term_program for name in supported)
+
+
+def _transmit_logo_image() -> int | None:
+    """Transmit the logo PNG via kitty graphics protocol, return image id or None."""
+    import base64
+    import os
+    from pathlib import Path
+
+    if not _supports_kitty_graphics():
+        return None
+
+    # Find the logo PNG bundled with the package
+    logo_path = Path(__file__).parent.parent / "logo.png"
+    if not logo_path.exists():
+        return None
+
+    image_id = 9999  # Fixed id for the logo
+    png_data = logo_path.read_bytes()
+    encoded = base64.standard_b64encode(png_data).decode("ascii")
+
+    # Transmit in chunks of 4096, using quiet mode (q=2) to suppress responses
+    # Create a virtual placement for Unicode placeholders (U=1)
+    chunks = [encoded[i : i + 4096] for i in range(0, len(encoded), 4096)]
+
+    try:
+        fd = os.open("/dev/tty", os.O_WRONLY)
+        for idx, chunk in enumerate(chunks):
+            is_first = idx == 0
+            is_last = idx == len(chunks) - 1
+            m = 0 if is_last else 1
+            if is_first:
+                header = f"\033_Ga=T,f=100,i={image_id},q=2,U=1,c=20,r=3,m={m};"
+            else:
+                header = f"\033_Gm={m};"
+            os.write(fd, (header + chunk + "\033\\").encode())
+        os.close(fd)
+    except OSError:
+        return None
+
+    return image_id
+
+
+def _make_placeholder(image_id: int, cols: int, rows: int) -> str:
+    """Build a Unicode placeholder string for a kitty graphics image."""
+    # U+10EEEE is the placeholder character
+    # Row/column diacritics: U+0305 = 0, U+030D = 1, U+0310 = 2, etc.
+    row_diacritics = [
+        "\u0305",
+        "\u030d",
+        "\u0310",
+        "\u0312",
+        "\u033d",
+        "\u033e",
+        "\u033f",
+        "\u0346",
+        "\u034a",
+        "\u034b",
+    ]
+    col_diacritics = row_diacritics  # Same set for columns
+
+    placeholder = "\U0010eeee"
+    lines = []
+    for r in range(rows):
+        row_d = row_diacritics[r] if r < len(row_diacritics) else row_diacritics[0]
+        line_chars = []
+        for c in range(cols):
+            col_d = col_diacritics[c] if c < len(col_diacritics) else col_diacritics[0]
+            line_chars.append(f"{placeholder}{row_d}{col_d}")
+        lines.append("".join(line_chars))
+    # Wrap with foreground color set to image_id (using 256-color if id < 256, else truecolor)
+    if image_id < 256:
+        color_start = f"\033[38;5;{image_id}m"
+    else:
+        r = (image_id >> 16) & 0xFF
+        g = (image_id >> 8) & 0xFF
+        b = image_id & 0xFF
+        color_start = f"\033[38;2;{r};{g};{b}m"
+    color_end = "\033[39m"
+    return "\n".join(f"{color_start}{line}{color_end}" for line in lines)
+
+
+# Module-level: attempt to transmit logo on import if supported
+_KITTY_LOGO_ID: int | None = None
+
+
 def _get_logo() -> str:
     """Return the appropriate logo based on terminal capabilities."""
+    global _KITTY_LOGO_ID
+    if _KITTY_LOGO_ID is None and _supports_kitty_graphics():
+        _KITTY_LOGO_ID = _transmit_logo_image()
+
+    if _KITTY_LOGO_ID is not None:
+        # Return Unicode placeholder text + taglines
+        # The placeholder occupies the left side, taglines on the right
+        return _make_placeholder(_KITTY_LOGO_ID, 16, 3)
+
     if _supports_sextants():
         return (
             "  🭆🬋🭑 🭆🬋🭑 🬹🬿🭊🬹 🬹🬋🭑 ╷ Git-aware\n"
