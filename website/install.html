@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install — gamr</title>
+  <meta name="description" content="Install gamr in seconds. Python 3.11+ required.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Chakra+Petch:wght@700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">gamr</a>
+      <div class="nav-links">
+        <a href="/install.html" class="active">Install</a>
+        <a href="/docs.html">Docs</a>
+        <a href="https://github.com/edouard/gamr" class="nav-github">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero hero-small">
+    <div class="hero-content">
+      <h1 class="reveal">Install <span class="gradient-text">gamr</span></h1>
+      <p class="hero-sub reveal">Up and running in under a minute.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container container-narrow">
+      <div class="install-block reveal">
+        <h2>Requirements</h2>
+        <ul class="install-list">
+          <li>Python 3.11 or later</li>
+          <li><a href="https://docs.astral.sh/uv/">uv</a> (for <code>uvx</code>) or pip</li>
+        </ul>
+      </div>
+
+      <div class="install-block reveal">
+        <h2>Quick Start</h2>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn" data-code="uvx gamr">Copy</button>
+          </div>
+          <pre><code><span class="dim"># Run directly with uvx (no install needed)</span>
+uvx gamr</code></pre>
+        </div>
+      </div>
+
+      <div class="install-block reveal">
+        <h2>With pip</h2>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn" data-code="pip install gamr && gamr ~/project">Copy</button>
+          </div>
+          <pre><code>pip install gamr
+gamr ~/project</code></pre>
+        </div>
+      </div>
+
+      <div class="install-block reveal">
+        <h2>Usage</h2>
+        <div class="code-block">
+          <div class="code-header"><span>Terminal</span></div>
+          <pre><code><span class="dim"># Monitor current directory</span>
+uvx gamr
+
+<span class="dim"># Monitor a specific project</span>
+uvx gamr ~/path/to/project
+
+<span class="dim"># Works on non-git directories too</span>
+uvx gamr /tmp/scratch</code></pre>
+        </div>
+      </div>
+
+      <div class="install-block reveal">
+        <h2>Configuration</h2>
+        <p>gamr stores preferences in <code>~/.config/gamr/preferences.toml</code>. Session state (collapsed directories, column widths, etc.) is saved automatically between sessions.</p>
+        <p>File icons are loaded from <code>~/.config/lsd/icons.yaml</code> if present.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">gamr</div>
+        <div class="footer-links">
+          <a href="/install.html">Install</a>
+          <a href="/docs.html">Docs</a>
+          <a href="https://github.com/edouard/gamr">GitHub</a>
+        </div>
+        <div class="footer-copy">Built with Textual, Dulwich & love for the terminal.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>

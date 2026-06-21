@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gamr — Git-aware Agent Monitor & Review</title>
+  <meta name="description" content="A TUI for reviewing AI agent work with live watching, fuzzy search, and diff preview.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Bricolage+Grotesque:wght@700;800&family=Chakra+Petch:wght@700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">gamr</a>
+      <div class="nav-links">
+        <a href="/install.html">Install</a>
+        <a href="/docs.html">Docs</a>
+        <a href="https://github.com/edouard/gamr" class="nav-github">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge reveal">Terminal-native</div>
+      <h1 class="hero-logo reveal"><span class="gradient-text">GAMR</span></h1>
+      <p class="hero-acronym reveal">Git-aware Agentic coding assistant Monitor &amp; Review tool</p>
+      <p class="hero-headline reveal">Watch your agents work. Review every change.</p>
+      <p class="hero-sub reveal">A TUI for reviewing AI agent work with live file watching, git-aware diffs, and fuzzy search. See what changed, when, and why — without leaving your terminal.</p>
+      <div class="hero-actions reveal">
+        <a href="/install.html" class="btn btn-primary">Get Started</a>
+        <a href="/docs.html" class="btn btn-secondary">Read the Docs</a>
+      </div>
+      <div class="hero-install reveal">
+        <span class="hero-install-label">TL;DR - just run:</span>
+        <code>uvx gamr</code>
+        <button class="hero-install-copy" data-code="uvx gamr" title="Copy">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Demo -->
+  <section class="section demo-section">
+    <div class="container">
+      <div class="demo-window reveal">
+        <div class="demo-titlebar">
+          <span class="demo-dot red"></span>
+          <span class="demo-dot yellow"></span>
+          <span class="demo-dot green"></span>
+          <span class="demo-title">gamr ~/project</span>
+        </div>
+        <div class="demo-body">
+          <pre class="demo-code"><span class="dim">┃</span> <span class="file-m">M</span> src/app.py            <span class="dim">│</span> <span class="diff-add">+  def handle_event(self):</span>
+<span class="dim">┃</span> <span class="file-m">M</span> src/models.py         <span class="dim">│</span> <span class="diff-add">+      self.state.update()</span>
+<span class="dim">┃</span> <span class="file-a">A</span> src/services/new.py   <span class="dim">│</span> <span class="diff-del">-      old_handler()</span>
+<span class="dim">┃</span> <span class="file-d">D</span> src/legacy.py         <span class="dim">│</span> <span class="diff-add">+      new_handler()</span>
+<span class="dim">┃</span>   src/widgets/          <span class="dim">│</span>
+<span class="dim">┃</span> <span class="file-m">M</span> tests/test_app.py     <span class="dim">│</span> <span class="dim">  @@ -42,6 +42,8 @@</span>
+<span class="dim">┃</span>   README.md             <span class="dim">│</span> <span class="diff-add">+  assert result.ok</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section features-section">
+    <div class="container">
+      <h2 class="section-title reveal">Everything you need to<br><span class="gradient-text">stay in control.</span></h2>
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon">👁</div>
+          <h3>Live File Watching</h3>
+          <p>Tree updates instantly when files change. Watchdog + polling fallback means it always works.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">⎇</div>
+          <h3>Deep Git Integration</h3>
+          <p>Pure Python via Dulwich. Status indicators, three diff modes, blame data, worktree support. No git binary needed.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🔍</div>
+          <h3>Fuzzy Search</h3>
+          <p>fzf-like filename filtering powered by RapidFuzz. Find any file in milliseconds.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">◧</div>
+          <h3>Side-by-Side Diff</h3>
+          <p>Character-level change highlighting with live refresh. Old and new files aligned and syntax-highlighted.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🎨</div>
+          <h3>Syntax Highlighting</h3>
+          <p>Monokai-themed preview with line numbers, scrollable, and inline diff markers with colored backgrounds.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">⌨</div>
+          <h3>Keyboard-First, Mouse-Ready</h3>
+          <p>Full navigation without a mouse — vim-style bindings, command palette, and desktop-style tree. Plus full mouse support (click, drag, resize) in <a href="https://iterm2.com/">iTerm2</a>, <a href="https://ghostty.org/">Ghostty</a>, <a href="https://sw.kovidgoyal.net/kitty/">Kitty</a>, <a href="https://wezfurlong.org/wezterm/">WezTerm</a>, and <a href="https://github.com/alacritty/alacritty">Alacritty</a>.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🙈</div>
+          <h3>Respects .gitignore</h3>
+          <p>Your node_modules, build artifacts, and .env files stay hidden. Because you don't need to see 40,000 dependencies.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🌳</div>
+          <h3>Worktree Support</h3>
+          <p>For the people who juggle linked worktrees and bare-repo layouts. You know who you are. It just works.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🎯</div>
+          <h3>Follow Mode</h3>
+          <p>Auto-selects the last changed file so you can watch your agent code in real-time. Yes, it's basically a gimmick. Impress your friends and co-workers!</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">Δ</div>
+          <h3>Git Status Filter</h3>
+          <p>One keypress to hide everything unchanged. See only what your agent actually touched — modified, added, deleted. Cut the noise instantly.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🖥</div>
+          <h3>Open in Your GUI App</h3>
+          <p>Launch any file in your OS default app. Review that README in your favourite markdown editor without leaving the flow.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">✎</div>
+          <h3>Quick Edit in Terminal</h3>
+          <p>Open any file in your terminal editor for a quick fix. Hello nvim!</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section how-section">
+    <div class="container">
+      <h2 class="section-title reveal">Built for the<br><span class="gradient-text">AI-assisted workflow.</span></h2>
+      <div class="how-steps">
+        <div class="how-step reveal">
+          <div class="how-number">01</div>
+          <div class="how-content">
+            <h3>Point it at your project</h3>
+            <p>Run <code>uvx gamr ~/project</code> and it detects git state, loads file icons, and starts watching.</p>
+          </div>
+        </div>
+        <div class="how-step reveal">
+          <div class="how-number">02</div>
+          <div class="how-content">
+            <h3>Watch agents work in real-time</h3>
+            <p>Follow mode auto-selects the last changed file. See modifications appear as your agent writes code.</p>
+          </div>
+        </div>
+        <div class="how-step reveal">
+          <div class="how-number">03</div>
+          <div class="how-content">
+            <h3>Review with confidence</h3>
+            <p>Three diff modes, blame data, and side-by-side comparison. Understand every change before committing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats / Highlights -->
+  <section class="section stats-section">
+    <div class="container">
+      <div class="stats-grid reveal">
+        <div class="stat">
+          <div class="stat-value">3</div>
+          <div class="stat-label">View modes</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Diff modes</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">0</div>
+          <div class="stat-label">External git deps</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">29</div>
+          <div class="stat-label">Architecture decisions</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section cta-section">
+    <div class="container">
+      <div class="cta-content reveal">
+        <h2>Ready to see what your agents are doing?</h2>
+        <p>Install gamr in seconds. Python 3.11+ required.</p>
+        <div class="hero-actions">
+          <a href="/install.html" class="btn btn-primary">Install Now</a>
+          <a href="/docs.html" class="btn btn-secondary">Documentation</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">gamr</div>
+        <div class="footer-links">
+          <a href="/install.html">Install</a>
+          <a href="/docs.html">Docs</a>
+          <a href="https://github.com/edouard/gamr">GitHub</a>
+        </div>
+        <div class="footer-copy">Built with Textual, Dulwich &amp; love for the terminal.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
