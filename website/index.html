@@ -24,10 +24,11 @@
 
   <!-- Hero -->
   <section class="hero">
+    <canvas class="hero-bg" aria-hidden="true"></canvas>
+    <div class="hero-vignette" aria-hidden="true"></div>
     <div class="hero-content">
-      <div class="hero-badge reveal">Terminal-native</div>
-      <h1 class="hero-logo reveal"><span class="gradient-text">GAMR</span></h1>
-      <p class="hero-acronym reveal">Git-aware Agentic coding assistant Monitor &amp; Review tool</p>
+      <div class="hero-acronym reveal">Git-aware Agentic coding assistant Monitor &amp; Review tool</div>
+      <h1 class="hero-logo reveal">GAMR</h1>
       <p class="hero-headline reveal">Watch your agents work. Review every change.</p>
       <p class="hero-sub reveal">A TUI for reviewing AI agent work with live file watching, git-aware diffs, and fuzzy search. See what changed, when, and why — without leaving your terminal.</p>
       <div class="hero-actions reveal">
@@ -70,7 +71,7 @@
   <!-- Features -->
   <section class="section features-section">
     <div class="container">
-      <h2 class="section-title reveal">Everything you need to<br><span class="gradient-text">stay in control.</span></h2>
+      <h2 class="section-title reveal">Everything you need to stay in control.</h2>
       <div class="features-grid">
         <div class="feature-card reveal">
           <div class="feature-icon">👁</div>
@@ -132,6 +133,11 @@
           <h3>Quick Edit in Terminal</h3>
           <p>Open any file in your terminal editor for a quick fix. Hello nvim!</p>
         </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">📋</div>
+          <h3>Copy File References</h3>
+          <p>See something you want to query the agent about? Just select the lines and paste the file reference. <code>src/app.py:81-85</code></p>
+        </div>
       </div>
     </div>
   </section>
@@ -139,7 +145,7 @@
   <!-- How it works -->
   <section class="section how-section">
     <div class="container">
-      <h2 class="section-title reveal">Built for the<br><span class="gradient-text">AI-assisted workflow.</span></h2>
+      <h2 class="section-title reveal">Built for the AI-assisted workflow.</h2>
       <div class="how-steps">
         <div class="how-step reveal">
           <div class="how-number">01</div>
