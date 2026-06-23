@@ -55,7 +55,7 @@ document.querySelectorAll('.copy-btn, .hero-install-copy').forEach(btn => {
     return `rgb(${ca[0] + (cb[0] - ca[0]) * t | 0},${ca[1] + (cb[1] - ca[1]) * t | 0},${ca[2] + (cb[2] - ca[2]) * t | 0})`;
   };
 
-  const ROW_H = 10;
+  const ROW_H = 20;
   const HOVER_ALPHA = 0.4;     // alpha while a rect is under the mouse
   const TRANSITION_MS = 3000;  // time to fade back to default after mouse leaves
   let W = 0, H = 0;
@@ -104,13 +104,16 @@ document.querySelectorAll('.copy-btn, .hero-install-copy').forEach(btn => {
   // Tweak the `d` values to add/remove strata (keep them in [0, 1] and ordered).
   //
   // Current setup, for an 800px-tall hero (80 rows):
-  //   1 + 1 + 1 + 1  = 4 rects per row
-  //   4 * 80         = ~320 rects total  (one at each depth band)
+  //   8 * 1 = 8 rects per row, but ROW_H=20 so half as many rows → same total
   const LAYERS = [
-    { d: 0.00, perRow: 1 },   // far back:    dim, slow, short, gray
-    { d: 0.33, perRow: 1 },   // mid-back:
-    { d: 0.67, perRow: 1 },   // mid-front:   switching to accent color
-    { d: 1.00, perRow: 1 },   // foreground:  fastest, longest, brightest
+    { d: 0.00, perRow: 1 },
+    { d: 0.14, perRow: 1 },
+    { d: 0.29, perRow: 1 },
+    { d: 0.43, perRow: 1 },
+    { d: 0.57, perRow: 1 },
+    { d: 0.71, perRow: 1 },
+    { d: 0.86, perRow: 1 },
+    { d: 1.00, perRow: 1 },
   ];
 
   function makeRect(depth, row) {
@@ -164,13 +167,18 @@ document.querySelectorAll('.copy-btn, .hero-install-copy').forEach(btn => {
   function seed() {
     rects = [];
     const rows = Math.max(8, Math.floor(H / ROW_H));
-    for (const { d, perRow } of LAYERS) {
+    for (let li = 0; li < LAYERS.length; li++) {
+      const { d, perRow } = LAYERS[li];
+      const layerOffset = (li / LAYERS.length) * (W + 200); // stagger layers horizontally
       for (let r = 0; r < rows; r++) {
         for (let k = 0; k < perRow; k++) {
           // Per-rect depth jitter (±0.05) so the spread feels continuous rather
           // than staircased across the layers. Clamped to keep it in [0, 1].
           const depth = Math.max(0, Math.min(1, d + (Math.random() - 0.5) * 0.1));
-          rects.push(makeRect(depth, r));
+          const rect = makeRect(depth, r);
+          rect.x = (rect.x + layerOffset) % (W + 200) - 200;
+          rect.y += (li / LAYERS.length) * ROW_H; // stagger layers vertically within row
+          rects.push(rect);
         }
       }
     }
@@ -293,7 +301,11 @@ function activateFeature(index) {
   const media = document.querySelector(`.features-media[data-feature="${index}"]`);
   const desc = document.querySelector(`.features-desc p[data-feature="${index}"]`);
   if (item) item.classList.add('active');
-  if (media) media.hidden = false;
+  if (media) {
+    media.hidden = false;
+    const video = media.querySelector('video');
+    if (video) { video.currentTime = 0; video.play(); }
+  }
   if (desc) desc.hidden = false;
 }
 

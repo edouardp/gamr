@@ -7,7 +7,17 @@
     height: 100%;
 }
 
+#left-pane.pane-focused .datatable--header {
+    background: $pane-focus-color;
+    color: #ffffff;
+}
+
 #right-pane {
     width: 1fr;
     height: 100%;
+}
+
+#right-pane.pane-focused #preview-header {
+    background: $pane-focus-color;
+    color: #ffffff;
 }

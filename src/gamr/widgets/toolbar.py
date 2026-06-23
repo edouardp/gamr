@@ -24,118 +24,42 @@ def _supports_sextants() -> bool:
     return any(name in term or name in term_program for name in supported)
 
 
-def _supports_kitty_graphics() -> bool:
-    """Check if the terminal supports the kitty graphics protocol."""
-    import os
+# Module-level logo instance
+from gamr.preferences import Preferences  # noqa: E402
+from gamr.services.kitty_graphics import KittyLogo  # noqa: E402
 
-    term = os.environ.get("TERM", "").lower()
-    term_program = os.environ.get("TERM_PROGRAM", "").lower()
-    return (
-        "KITTY_WINDOW_ID" in os.environ
-        or term == "xterm-ghostty"
-        or "GHOSTTY_RESOURCES_DIR" in os.environ
-        or "wezterm" in term_program
-    )
+_logo = KittyLogo()
+_prefs = Preferences.load()
 
-
-# Full diacritics table from kitty protocol spec (row/column encoding)
-_ROW_COL_DIACRITICS = (
-    "\u0305\u030d\u030e\u0310\u0312\u033d\u033e\u033f"
-    "\u0346\u034a\u034b\u034c\u0350\u0351\u0352\u0357"
-    "\u035b\u0363\u0364\u0365\u0366\u0367\u0368\u0369"
-    "\u036a\u036b\u036c\u036d\u036e\u036f\u0483\u0484"
-    "\u0485\u0486\u0487\u0592\u0593\u0594\u0595\u0597"
-    "\u0598\u0599\u059c\u059d\u059e\u059f\u05a0\u05a1"
-    "\u05a8\u05a9\u05ab\u05ac\u05af\u05c4\u0610\u0611"
-    "\u0612\u0613\u0614\u0615\u0616\u0617\u0657\u0658"
+_SEXTANT_LOGO = (
+    "  🭆🬋🭑 🭆🬋🭑 🬹🬿🭊🬹 🬹🬋🭑 ╷ Git-aware\n"
+    "  █🬇🬹 █🬋█ █🭕🭠█ █🬋🬴 │ Agentic coding assistant\n"
+    "  🭧🬋🭜 🬎 🬎 🬎  🬎 🬎 🬎 ╵ Monitor & Review tool"
+)
+_UNICODE_LOGO = (
+    "  ┏━╸┏━┓┏┳┓┏━┓  Git-aware\n  ┃╺┓┣━┫┃┃┃┣┳┛  Agentic coding assistant\n  ┗━┛╹ ╹╹ ╹╹┗╸  Monitor & Review tool"
 )
 
 
-def _transmit_logo_image() -> int | None:
-    """Transmit the logo PNG via kitty graphics protocol, return image id or None."""
-    import base64
-    import os
-    from pathlib import Path
-
-    if not _supports_kitty_graphics():
-        return None
-
-    logo_path = Path(__file__).parent.parent / "logo.png"
-    if not logo_path.exists():
-        return None
-
-    image_id = 42
-    png_data = logo_path.read_bytes()
-    encoded = base64.standard_b64encode(png_data).decode("ascii")
-    chunks = [encoded[i : i + 4096] for i in range(0, len(encoded), 4096)]
-
-    # Transmit only (a=t), no placement yet
-    buf = []
-    for idx, chunk in enumerate(chunks):
-        is_first = idx == 0
-        is_last = idx == len(chunks) - 1
-        m = 0 if is_last else 1
-        if is_first:
-            buf.append(f"\033_Ga=t,f=100,q=2,i={image_id},m={m};{chunk}\033\\")
-        else:
-            buf.append(f"\033_Gm={m};{chunk}\033\\")
-
-    try:
-        fd = os.open("/dev/tty", os.O_WRONLY)
-        os.write(fd, "".join(buf).encode())
-        os.close(fd)
-    except OSError:
-        return None
-
-    return image_id
-
-
-def _make_placeholder(image_id: int, cols: int, rows: int) -> str:
-    """Build Unicode placeholder string for a kitty graphics virtual placement."""
-    placeholder = "\U0010eeee"
-    # Encode image_id as RGB foreground color (lower 24 bits)
-    r = (image_id >> 16) & 0xFF
-    g = (image_id >> 8) & 0xFF
-    b = image_id & 0xFF
-    # MSB of image_id (upper 8 bits) goes as 3rd diacritic
-    msb = (image_id >> 24) & 0xFF
-
-    color_start = f"\033[38;2;{r};{g};{b}m"
-    color_end = "\033[39m"
-
-    lines = []
-    for row in range(rows):
-        row_d = _ROW_COL_DIACRITICS[row]
-        msb_d = _ROW_COL_DIACRITICS[msb]
-        line_chars = []
-        for col in range(cols):
-            col_d = _ROW_COL_DIACRITICS[col]
-            line_chars.append(f"{placeholder}{row_d}{col_d}{msb_d}")
-        lines.append(f"{color_start}{''.join(line_chars)}{color_end}")
-    return "\n".join(lines)
-
-
-# Module-level: attempt to transmit logo on import if supported
-_KITTY_LOGO_ID: int | None = None
-
-
 def _get_logo() -> str:
-    """Return the appropriate logo based on terminal capabilities."""
-    global _KITTY_LOGO_ID
-    if _KITTY_LOGO_ID is None and _supports_kitty_graphics():
-        _KITTY_LOGO_ID = _transmit_logo_image()
+    """Return the appropriate logo based on preferences and terminal capabilities."""
+    mode = _prefs.logo_mode
 
-    if _KITTY_LOGO_ID is not None:
-        # Return blank space so the sextant logo doesn't show through
+    if mode == "text":
+        return _prefs.logo_text or "GAMR"
+    if mode == "kitty" and _logo.available:
         return " \n \n "
+    if mode == "sextant":
+        return _SEXTANT_LOGO
+    if mode == "unicode":
+        return _UNICODE_LOGO
 
+    # auto: kitty > sextant > unicode
+    if _logo.available:
+        return " \n \n "
     if _supports_sextants():
-        return (
-            "  🭆🬋🭑 🭆🬋🭑 🬹🬿🭊🬹 🬹🬋🭑 ╷ Git-aware\n"
-            "  █🬇🬹 █🬋█ █🭕🭠█ █🬋🬴 │ Agentic coding assistant\n"
-            "  🭧🬋🭜 🬎 🬎 🬎  🬎 🬎 🬎 ╵ Monitor & Review tool"
-        )
-    return "  ┏━╸┏━┓┏┳┓┏━┓  Git-aware\n  ┃╺┓┣━┫┃┃┃┣┳┛  Agentic coding assistant\n  ┗━┛╹ ╹╹ ╹╹┗╸  Monitor & Review tool"
+        return _SEXTANT_LOGO
+    return _UNICODE_LOGO
 
 
 class _StatusItem(Static):
@@ -193,7 +117,7 @@ class Toolbar(Widget):
         color: $text-muted;
     }
     Toolbar #status-left {
-        width: 16;
+        width: auto;
         height: 3;
         padding: 0 1;
     }
@@ -204,7 +128,8 @@ class Toolbar(Widget):
     }
     Toolbar .status-item {
         height: 1;
-        width: 100%;
+        width: auto;
+        min-width: 12;
         color: $text-muted;
     }
     Toolbar #status-right .status-item {
@@ -229,38 +154,47 @@ class Toolbar(Widget):
                 yield _StatusItem("", id="st-follow", classes="status-item")
 
     def on_mount(self) -> None:
-        if _KITTY_LOGO_ID is not None:
+        if _logo.available and _prefs.logo_mode in ("auto", "kitty"):
+            _logo.transmit()
             self.call_after_refresh(self._place_logo_image)
 
     def on_resize(self) -> None:
-        if _KITTY_LOGO_ID is not None:
+        if _logo._transmitted:
             self.call_after_refresh(self._place_logo_image)
+
+    def _delete_logo_image(self) -> None:
+        """Remove the kitty graphics logo from screen."""
+        if not _logo._transmitted:
+            return
+        if self.app._driver is not None:
+            _logo.delete(self.app._driver)
+
+    def hide_logo(self) -> None:
+        """Hide the kitty logo (call when modals open)."""
+        self._delete_logo_image()
+
+    def show_logo(self) -> None:
+        """Show the kitty logo (call when modals close)."""
+        self.call_after_refresh(self._place_logo_image)
 
     def _place_logo_image(self) -> None:
         """Place the kitty graphics image at the logo widget's screen position."""
-        if _KITTY_LOGO_ID is None:
+        if not _logo._transmitted:
             return
-        logo = self.query_one("#logo", Static)
-        region = logo.region
-        if region.width < 1:
+        logo_widget = self.query_one("#logo", Static)
+        if logo_widget.has_class("hidden"):
+            self._delete_logo_image()
             return
-        # Delete previous placement, then re-place
-        img_cols = 20
-        rows = region.height or 3
-        x_offset = max(0, (region.width - img_cols) // 2)
-        x = region.x + x_offset + 1  # 1-based
-        y = region.y + 1  # 1-based
-        seq = (
-            # Delete old placements of this image
-            f"\033_Ga=d,d=i,i={_KITTY_LOGO_ID},q=2;\033\\"
-            # Save cursor, position, place, restore
-            f"\033[s"
-            f"\033[{y};{x}H"
-            f"\033_Ga=p,i={_KITTY_LOGO_ID},q=2,c={img_cols},r={rows},C=1;\033\\"
-            f"\033[u"
-        )
+        region = logo_widget.region
+        rows = region.height
+        if region.width < 12 or rows < 1:
+            self._delete_logo_image()
+            return
+        x_offset = max(0, (region.width - _logo.COLS) // 2)
+        x = region.x + x_offset + 1
+        y = region.y + 1
         if self.app._driver is not None:
-            self.app._driver.write(seq)
+            _logo.place(self.app._driver, x, y, rows)
 
     def update_status(
         self,
@@ -308,6 +242,10 @@ class Toolbar(Widget):
             self.post_message(self.FiltersChanged(self.active_statuses, event.value))
             # Show/hide logo based on whether there's a query
             self.query_one("#logo").set_class(bool(event.value), "hidden")
+            if event.value:
+                self._delete_logo_image()
+            else:
+                self.call_after_refresh(self._place_logo_image)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "search-input":
@@ -317,6 +255,7 @@ class Toolbar(Widget):
     def show_search(self) -> None:
         """Show the search input and hide the logo."""
         self.query_one("#logo").add_class("hidden")
+        self._delete_logo_image()
         inp = self.query_one("#search-input", Input)
         inp.remove_class("hidden")
         inp.focus()
@@ -327,6 +266,7 @@ class Toolbar(Widget):
         if not inp.value:
             inp.add_class("hidden")
             self.query_one("#logo").remove_class("hidden")
+            self.call_after_refresh(self._place_logo_image)
 
     @property
     def active_statuses(self) -> set[GitStatus]:

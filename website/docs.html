@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Docs — gamr</title>
-  <meta name="description" content="Documentation for gamr — keybindings, architecture, and configuration.">
+  <meta name="description" content="Learn how to use gamr — navigating files, reviewing diffs, and watching agents work.">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,142 +24,193 @@
 
   <section class="hero hero-small">
     <div class="hero-content">
-      <h1 class="reveal">Docs</h1>
-      <p class="hero-sub reveal">Everything you need to know about gamr.</p>
+      <h1 class="reveal">Using gamr</h1>
+      <p class="hero-sub reveal">A quick guide to getting the most out of the tool.</p>
     </div>
   </section>
 
   <section class="section">
     <div class="container container-narrow">
 
-      <div class="docs-block reveal">
-        <h2>Keybindings</h2>
-        <div class="keybindings-table">
-          <table>
-            <thead>
-              <tr><th>Key</th><th>Action</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><kbd>↑</kbd>/<kbd>↓</kbd></td><td>Navigate files</td></tr>
-              <tr><td><kbd>j</kbd>/<kbd>k</kbd></td><td>Navigate (tree) or scroll (preview)</td></tr>
-              <tr><td><kbd>→</kbd></td><td>Expand directory</td></tr>
-              <tr><td><kbd>←</kbd></td><td>Collapse directory or go to parent</td></tr>
-              <tr><td><kbd>space</kbd></td><td>Toggle expand/collapse or page down</td></tr>
-              <tr><td><kbd>v</kbd></td><td>Cycle view mode (tree → flat name → flat path)</td></tr>
-              <tr><td><kbd>d</kbd></td><td>Cycle diff mode (full → gutter → unified)</td></tr>
-              <tr><td><kbd>s</kbd></td><td>Side-by-side diff popup</td></tr>
-              <tr><td><kbd>J</kbd>/<kbd>n</kbd></td><td>Next diff hunk</td></tr>
-              <tr><td><kbd>K</kbd>/<kbd>N</kbd></td><td>Previous diff hunk</td></tr>
-              <tr><td><kbd>o</kbd></td><td>Cycle diff overview style</td></tr>
-              <tr><td><kbd>g</kbd></td><td>Toggle git modified filter</td></tr>
-              <tr><td><kbd>f</kbd></td><td>Toggle follow mode</td></tr>
-              <tr><td><kbd>ctrl+f</kbd></td><td>Focus search input</td></tr>
-              <tr><td><kbd>b</kbd></td><td>Toggle blame columns</td></tr>
-              <tr><td><kbd>1</kbd>–<kbd>7</kbd></td><td>Toggle individual columns</td></tr>
-              <tr><td><kbd>O</kbd></td><td>Open file in default app</td></tr>
-              <tr><td><kbd>tab</kbd></td><td>Switch focus (tree ↔ preview)</td></tr>
-              <tr><td><kbd>ctrl+p</kbd></td><td>Command palette</td></tr>
-              <tr><td><kbd>?</kbd></td><td>Show help</td></tr>
-              <tr><td><kbd>q</kbd></td><td>Quit (saves state)</td></tr>
-            </tbody>
-          </table>
+      <div class="docs-block">
+        <h2>The Layout</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">tab</span><span class="keycap-label">switch pane</span></span>
         </div>
+        <div class="mouse-row">
+          <svg class="mouse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/><line x1="12" y1="6" x2="12" y2="8" stroke-width="2.5"/></svg>
+          <span>Mouse: Drag the splitter between panes to resize</span>
+        </div>
+        <p>gamr has two panes: a <strong>file tree</strong> on the left and a <strong>preview</strong> on the right. Press <kbd>tab</kbd> to move focus between them. Between the panes is a draggable splitter — grab it with the mouse to resize. Your split position is remembered between sessions.</p>
       </div>
 
-      <div class="docs-block reveal">
-        <h2>View Modes</h2>
-        <div class="docs-cards">
-          <div class="docs-card">
-            <h4>Tree</h4>
-            <p>Hierarchical directory tree with expand/collapse. Desktop-style ←/→ navigation.</p>
-          </div>
-          <div class="docs-card">
-            <h4>Flat (Name)</h4>
-            <p>All files in a flat list sorted by filename. Great for fuzzy searching.</p>
-          </div>
-          <div class="docs-card">
-            <h4>Flat (Path)</h4>
-            <p>Flat list showing relative paths. Useful for seeing full file locations.</p>
-          </div>
+      <h3 class="docs-section-title">File Pane</h3>
+
+      <div class="docs-block">
+        <h2>Navigation</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">↑ ↓</span><span class="keycap-label">navigate</span></span>
+          <span class="keycap"><span class="keycap-letter">j k</span><span class="keycap-label">navigate</span></span>
+          <span class="keycap"><span class="keycap-letter">→</span><span class="keycap-label">expand</span></span>
+          <span class="keycap"><span class="keycap-letter">←</span><span class="keycap-label">collapse</span></span>
+          <span class="keycap"><span class="keycap-letter">space</span><span class="keycap-label">toggle</span></span>
         </div>
+        <div class="mouse-row">
+          <svg class="mouse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/></svg>
+          <span>Mouse: Click to select, click directories to expand/collapse, scroll wheel to navigate</span>
+        </div>
+        <p>Move between files with <kbd>↑</kbd>/<kbd>↓</kbd> or <kbd>j</kbd>/<kbd>k</kbd>. Open directories with <kbd>→</kbd> or <kbd>space</kbd>, close them with <kbd>←</kbd> or <kbd>space</kbd>. Press <kbd>←</kbd> on a file to jump to its parent directory.</p>
       </div>
 
-      <div class="docs-block reveal">
-        <h2>Diff Modes</h2>
-        <div class="docs-cards">
-          <div class="docs-card">
-            <h4>Full File</h4>
-            <p>Complete syntax-highlighted file with inline +/- markers and colored backgrounds.</p>
-          </div>
-          <div class="docs-card">
-            <h4>Gutter</h4>
-            <p>Full file with change indicators in the gutter — minimal but informative.</p>
-          </div>
-          <div class="docs-card">
-            <h4>Unified</h4>
-            <p>Traditional unified diff format showing only changed lines with context.</p>
-          </div>
+      <div class="docs-block">
+        <h2>Search</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">/</span><span class="keycap-label">search</span></span>
         </div>
+        <p>Fuzzy filename search powered by RapidFuzz. Start typing and the tree filters instantly. Works across all view modes. Press <kbd>Esc</kbd> to clear and return to the full tree.</p>
       </div>
 
-      <div class="docs-block reveal">
-        <h2>Architecture</h2>
-        <div class="code-block">
-          <div class="code-header"><span>Project Structure</span></div>
-          <pre><code>src/gamr/
-├── app.py                  <span class="dim"># Textual app, keybindings</span>
-├── commands.py             <span class="dim"># Command palette</span>
-├── models.py               <span class="dim"># FileEntry, GitStatus, etc.</span>
-├── state.py                <span class="dim"># Persistent state</span>
-├── preferences.py          <span class="dim"># User preferences</span>
-├── preview.py              <span class="dim"># Preview orchestration</span>
-├── services/
-│   ├── diff_parser.py      <span class="dim"># Unified diff → DiffData</span>
-│   ├── file_scanner.py     <span class="dim"># File watching</span>
-│   ├── file_index.py       <span class="dim"># Scanner + git → FileEntry</span>
-│   ├── git_provider.py     <span class="dim"># Dulwich git interface</span>
-│   ├── filter.py           <span class="dim"># Fuzzy & status filtering</span>
-│   └── icons.py            <span class="dim"># Icon loading</span>
-└── widgets/
-    ├── file_tree_table.py  <span class="dim"># DataTable with tree</span>
-    ├── tree_data.py        <span class="dim"># Tree building & sorting</span>
-    ├── toolbar.py          <span class="dim"># Logo + search</span>
-    ├── preview_pane.py     <span class="dim"># Syntax preview + diffs</span>
-    ├── side_by_side.py     <span class="dim"># Side-by-side modal</span>
-    ├── help.py             <span class="dim"># Help modal</span>
-    └── split.py            <span class="dim"># Resizable split</span></code></pre>
+      <div class="docs-block">
+        <h2>File View Modes</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">v</span><span class="keycap-label">view mode</span></span>
         </div>
-      </div>
-
-      <div class="docs-block reveal">
-        <h2>Dependencies</h2>
-        <div class="deps-grid">
-          <div class="dep">
-            <h4><a href="https://textual.textualize.io/">Textual</a></h4>
-            <p>TUI framework</p>
-          </div>
-          <div class="dep">
-            <h4><a href="https://dulwich.io/">Dulwich</a></h4>
-            <p>Pure Python git</p>
-          </div>
-          <div class="dep">
-            <h4><a href="https://github.com/gorakhargosh/watchdog">watchdog</a></h4>
-            <p>Filesystem events</p>
-          </div>
-          <div class="dep">
-            <h4><a href="https://github.com/rapidfuzz/RapidFuzz">RapidFuzz</a></h4>
-            <p>Fuzzy matching</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="docs-block reveal">
-        <h2>Further Reading</h2>
+        <p>Cycle between three ways to see your files:</p>
         <ul class="install-list">
-          <li><a href="https://github.com/edouardp/gamr/blob/main/docs/UI_DESIGN.md">UI Design Rules</a> — all interaction behaviors and edge cases</li>
+          <li><strong>Tree</strong> — hierarchical directory structure with expand/collapse</li>
+          <li><strong>Flat (name)</strong> — all files in a flat list by filename, ideal for searching</li>
+          <li><strong>Flat (path)</strong> — flat list showing relative paths, for seeing full locations</li>
+        </ul>
+        <p>TUI Status Bar: <code>🌳 tree</code> → <code>📄 flat</code> → <code>📁 path</code>. <svg class="mouse-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/></svg> Click to cycle.</p>
+      </div>
+
+      <div class="docs-block">
+        <h2>Columns</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">1-7</span><span class="keycap-label">columns</span></span>
+        </div>
+        <div class="mouse-row">
+          <svg class="mouse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/></svg>
+          <span>Mouse: Click column headers to sort ascending / descending / none</span>
+        </div>
+        <p>Keys <kbd>1</kbd>–<kbd>7</kbd> toggle individual columns on and off: status, lines, size, rows, mtime, author, and git time.</p>
+      </div>
+
+      <div class="docs-block">
+        <h2>Git Filtering</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">g</span><span class="keycap-label">git filter</span></span>
+        </div>
+        <p>Toggle to show only files with git changes — modified, added, deleted, or untracked. Everything unchanged disappears. One keypress to cut through the noise of a large repo.</p>
+        <p>TUI Status Bar: <code>🔸 git (N/M)</code> when active, showing matching file count. <svg class="mouse-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/></svg> Click to toggle.</p>
+      </div>
+
+      <h3 class="docs-section-title">Preview Pane</h3>
+
+      <div class="docs-block">
+        <h2>Navigation</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">↑ ↓</span><span class="keycap-label">scroll</span></span>
+          <span class="keycap"><span class="keycap-letter">j k</span><span class="keycap-label">scroll</span></span>
+          <span class="keycap"><span class="keycap-letter">space</span><span class="keycap-label">page down</span></span>
+          <span class="keycap"><span class="keycap-letter">PgUp/Dn</span><span class="keycap-label">page</span></span>
+        </div>
+        <div class="mouse-row">
+          <svg class="mouse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/><line x1="12" y1="6" x2="12" y2="8" stroke-width="2.5"/></svg>
+          <span>Mouse: Scroll wheel to scroll, drag scrollbar on right edge</span>
+        </div>
+        <p>When the preview pane is focused, <kbd>↑</kbd>/<kbd>↓</kbd> and <kbd>j</kbd>/<kbd>k</kbd> scroll line by line. <kbd>space</kbd> pages down. <kbd>Page Up</kbd> and <kbd>Page Down</kbd> also work.</p>
+      </div>
+
+      <div class="docs-block">
+        <h2>Jumping Between Hunks</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">J n</span><span class="keycap-label">next hunk</span></span>
+          <span class="keycap"><span class="keycap-letter">K N</span><span class="keycap-label">prev hunk</span></span>
+        </div>
+        <p><kbd>J</kbd> or <kbd>n</kbd> jumps to the next diff hunk — even if it's offscreen. <kbd>K</kbd> or <kbd>N</kbd> jumps to the previous one. This lets you quickly step through all changes in a file without manually scrolling.</p>
+      </div>
+
+      <div class="docs-block">
+        <h2>Diff Modes</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">d</span><span class="keycap-label">diff mode</span></span>
+        </div>
+        <p>Cycle between three inline diff styles:</p>
+        <ul class="install-list">
+          <li><strong>Full file</strong> — entire file with added/removed lines highlighted. Best for understanding context.</li>
+          <li><strong>Gutter</strong> — full file with subtle change markers in the margin. Minimal noise.</li>
+          <li><strong>Unified</strong> — only changed lines with context, like <code>git diff</code>.</li>
+        </ul>
+        <p>TUI Status Bar: <code>full 👓</code> → <code>gutter 👓</code> → <code>unified 👓</code>. <svg class="mouse-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/></svg> Click to cycle.</p>
+      </div>
+
+      <div class="docs-block">
+        <h2>Side-by-Side Diff</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">s</span><span class="keycap-label">side-by-side</span></span>
+        </div>
+        <p>Opens a modal showing the old and new versions of the file aligned side by side. Character-level change highlighting makes it easy to spot exactly what was modified. Press <kbd>s</kbd> again or <kbd>Esc</kbd> to close.</p>
+      </div>
+
+      <div class="docs-block">
+        <h2>Overview Modes</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">o</span><span class="keycap-label">overview</span></span>
+        </div>
+        <p>Cycles the diff overview bar on the right edge of the preview — a minimap showing where changes are in the file. Five modes: off, line (1×), quadrant (2×), sextant (3×), and braille (4×).</p>
+        <p>TUI Status Bar: <code>overview 1x</code> → <code>overview 2x</code> → <code>overview 3x</code> → <code>overview ⣿</code> → <code>overview ·</code>. <svg class="mouse-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/></svg> Click to cycle.</p>
+      </div>
+
+      <h3 class="docs-section-title">Follow Mode</h3>
+
+      <div class="docs-block">
+        <h2>Watching Agents Work</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">f</span><span class="keycap-label">follow</span></span>
+        </div>
+        <p>The killer feature. When enabled, gamr automatically selects whichever file was last modified. As your agent writes code, you see it happen in real-time.</p>
+        <p>Combine with <kbd>g</kbd> (git filter) for a focused live view of exactly what's changing.</p>
+        <p>TUI Status Bar: <code>follow 👀</code> when active. <svg class="mouse-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/></svg> Click to toggle.</p>
+      </div>
+
+      <h3 class="docs-section-title">Actions</h3>
+
+      <div class="docs-block">
+        <h2>Opening Files</h2>
+        <div class="keycap-row">
+          <span class="keycap"><span class="keycap-letter">e</span><span class="keycap-label">edit</span></span>
+          <span class="keycap"><span class="keycap-letter">O</span><span class="keycap-label">default app</span></span>
+        </div>
+        <p><kbd>e</kbd> opens the selected file in your terminal editor — it checks <code>$VISUAL</code> first, then <code>$EDITOR</code>. <kbd>O</kbd> opens it in your OS default application (your GUI markdown editor, image viewer, etc).</p>
+      </div>
+
+      <div class="docs-block">
+        <h2>Copy File References</h2>
+        <div class="mouse-row">
+          <svg class="mouse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="12" height="20" rx="6"/><line x1="12" y1="2" x2="12" y2="10"/></svg>
+          <span>Mouse: Double-click or drag to select lines and copy reference</span>
+        </div>
+        <p>Select lines in the preview and the file reference is copied to your clipboard as <code>src/app.py:81-85</code>. Paste it straight into your agent's chat to ask about specific code.</p>
+      </div>
+
+      <h3 class="docs-section-title">Settings</h3>
+
+      <div class="docs-block">
+        <h2>Configuration</h2>
+        <p>Preferences live in <code>~/.config/gamr/preferences.toml</code>. Session state — collapsed directories, scroll position, column widths, active filters — is saved automatically between runs.</p>
+        <p>File icons load from <code>~/.config/lsd/icons.yaml</code> if present (same format as <a href="https://github.com/lsd-rs/lsd">lsd</a>).</p>
+      </div>
+
+      <div class="docs-block">
+        <h2>For Contributors</h2>
+        <p>gamr is built with <a href="https://textual.textualize.io/">Textual</a> and <a href="https://dulwich.io/">Dulwich</a> (pure Python git). No compiled dependencies, no git binary required.</p>
+        <ul class="install-list">
+          <li><a href="https://github.com/edouardp/gamr/blob/main/docs/UI_DESIGN.md">UI Design Rules</a> — interaction behaviors and edge cases</li>
           <li><a href="https://github.com/edouardp/gamr/blob/main/docs/adrs/README.md">Architecture Decision Records</a> — 29 ADRs covering all design choices</li>
         </ul>
       </div>
+
     </div>
   </section>
 

@@ -40,6 +40,8 @@ HELP_TEXT = """\
   [cyan]ctrl+p[/]         Command palette
   [cyan]?[/]              This help
   [cyan]q[/]              Quit
+
+[dim]Full docs → gamr.edouard.nz/docs.html[/]
 """
 
 
@@ -68,6 +70,12 @@ class HelpScreen(ModalScreen[None]):
         width: auto;
         height: auto;
     }
+    #help-docs-link {
+        height: 1;
+        background: $surface-lighten-1;
+        color: $text-muted;
+        padding: 0 3;
+    }
     """
 
     def on_key(self, event) -> None:
@@ -83,3 +91,7 @@ class HelpScreen(ModalScreen[None]):
         with Vertical(id="help-container"):
             yield Static(" Keyboard Shortcuts (? or esc to close)", id="help-header")
             yield Static(HELP_TEXT, id="help-content")
+            yield Static(
+                " [@click=app.open_link('https://gamr.edouard.nz/docs.html')]📖 Open full docs in browser[/]",
+                id="help-docs-link",
+            )

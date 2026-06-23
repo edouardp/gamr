@@ -30,7 +30,7 @@
         <div class="hero-acronym reveal"><span class="white">GIT</span>-AWARE <span class="white">AGENTIC</span> CODING ASSISTANT <span class="white">MONITOR</span> &amp; <span class="white">REVIEW</span> TOOL</div>
       <h1 class="hero-logo reveal">GAMR</h1>
       <p class="hero-headline reveal">Watch your agents work.<br/>See every change.</p>
-      <p class="hero-sub">A TUI for reviewing AI agent work with live file watching, git-aware diffs, and fuzzy search. See what changed, when, and why — without leaving your terminal.</p>
+      <p class="hero-sub">A TUI for reviewing AI agent work with live file watching, git-aware diffs, and fuzzy search. See what changed, where, and when — without leaving your terminal.</p>
       <div class="hero-actions">
         <a href="/install.html" class="btn btn-primary">Get Started</a>
         <a href="/docs.html" class="btn btn-secondary">Read the Docs</a>
@@ -45,28 +45,6 @@
     </div>
   </section>
 
-  <!-- Demo -->
-  <section class="section demo-section">
-    <div class="container">
-      <div class="demo-window">
-        <div class="demo-titlebar">
-          <span class="demo-dot red"></span>
-          <span class="demo-dot yellow"></span>
-          <span class="demo-dot green"></span>
-          <span class="demo-title">gamr ~/project</span>
-        </div>
-        <div class="demo-body">
-          <pre class="demo-code"><span class="dim">┃</span> <span class="file-m">M</span> src/app.py            <span class="dim">│</span> <span class="diff-add">+  def handle_event(self):</span>
-<span class="dim">┃</span> <span class="file-m">M</span> src/models.py         <span class="dim">│</span> <span class="diff-add">+      self.state.update()</span>
-<span class="dim">┃</span> <span class="file-a">A</span> src/services/new.py   <span class="dim">│</span> <span class="diff-del">-      old_handler()</span>
-<span class="dim">┃</span> <span class="file-d">D</span> src/legacy.py         <span class="dim">│</span> <span class="diff-add">+      new_handler()</span>
-<span class="dim">┃</span>   src/widgets/          <span class="dim">│</span>
-<span class="dim">┃</span> <span class="file-m">M</span> tests/test_app.py     <span class="dim">│</span> <span class="dim">  @@ -42,6 +42,8 @@</span>
-<span class="dim">┃</span>   README.md             <span class="dim">│</span> <span class="diff-add">+  assert result.ok</span></pre>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- Features -->
   <section class="section features-section">
@@ -90,19 +68,19 @@
         </div>
         <div class="features-preview">
           <div class="features-preview-inner">
-            <div class="features-media" data-feature="0"><img src="images/follow-gutter.png" alt="Live File Watching"></div>
-            <div class="features-media" data-feature="1" hidden><img src="images/full-diff.png" alt="Git Integration"></div>
-            <div class="features-media" data-feature="2" hidden><img src="images/fuzzy-search.png" alt="Fuzzy Search"></div>
-            <div class="features-media" data-feature="3" hidden><img src="images/side-by-side.png" alt="Side-by-Side Diff"></div>
-            <div class="features-media" data-feature="4" hidden><img src="images/syntax-highlight.png" alt="Syntax Highlighting"></div>
-            <div class="features-media" data-feature="5" hidden><img src="images/keyboard-help.png" alt="Keyboard Shortcuts"></div>
-            <div class="features-media" data-feature="6" hidden><img src="images/gitignore.png" alt=".gitignore"></div>
-            <div class="features-media" data-feature="7" hidden><img src="images/tree-full.png" alt="Worktrees"></div>
-            <div class="features-media" data-feature="8" hidden><img src="images/follow-on.png" alt="Follow Mode"></div>
-            <div class="features-media" data-feature="9" hidden><img src="images/git-modified-filter.png" alt="Git Filter"></div>
-            <div class="features-media" data-feature="10" hidden><img src="images/open-gui-overlay.png" alt="Open in GUI"></div>
-            <div class="features-media" data-feature="11" hidden><img src="images/editor-nvim.png" alt="Terminal Editor"></div>
-            <div class="features-media" data-feature="12" hidden><img src="images/copy-file-ref.png" alt="Copy References"></div>
+            <div class="features-media" data-feature="0"><video src="images/file-watching.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="1" hidden><video src="images/git.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="2" hidden><video src="images/fuzzy-find.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="3" hidden><video src="images/side-by-side-diff.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="4" hidden><video src="images/syntax-highlighting.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="5" hidden><video src="images/mouse-and-kbd.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="6" hidden><video src="images/gitignore.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="7" hidden><video src="images/worktree-support.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="8" hidden><video src="images/follow-mode.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="9" hidden><video src="images/git-status-filter.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="10" hidden><video src="images/open-default-app.mp4" autoplay muted loop playsinline></video></div>
+            <div class="features-media" data-feature="11" hidden><video src="images/quick-edit.mp4" autoplay muted playsinline></video></div>
+            <div class="features-media" data-feature="12" hidden><video src="images/copy-file-and-line-ref.mp4" autoplay muted loop playsinline></video></div>
           </div>
           <div class="features-desc">
             <p data-feature="0">Tree updates instantly when files change. Watchdog + polling fallback means it always works.</p>

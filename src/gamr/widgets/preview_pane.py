@@ -459,20 +459,23 @@ class PreviewPane(Widget):
         self.scroll_to_source_line(max(1, source_line - context))
 
     def update_header(self) -> None:
-        """Update the header with current filename and diff mode."""
-        name = self.current_path.name if self.current_path else ""
-        mode_labels = {
-            DiffMode.UNIFIED: "diff",
-            DiffMode.FULL: "full diff",
-            DiffMode.GUTTER: "gutter",
-        }
-        mode = mode_labels.get(self.show_diff, "")
+        """Update the header with file icon and relative path."""
         header = self.query_one("#preview-header", PreviewHeader)
-        if name:
-            pad = max(1, 60 - len(name) - len(mode))
-            header.update(f"{name}{' ' * pad}{mode}")
-        else:
+        if not self.current_path:
             header.update("")
+            return
+        # Get relative path from the app's target directory
+        try:
+            from gamr.widgets.file_tree_table import FileTreeTable
+
+            tree = self.app.query_one(FileTreeTable)
+            icons = tree._icons
+            icon = icons.get_icon(self.current_path, is_dir=False)
+            rel = self.current_path.relative_to(self.app.target_path)
+        except Exception:
+            icon = ""
+            rel = self.current_path.name
+        header.update(f"{icon} {rel}")
 
     def show_file(self, path: Path, *, scroll_to_top: bool = True, restore_line: int = 0) -> None:
         """Display a file with syntax highlighting (no diff markers)."""
@@ -841,7 +844,9 @@ class PreviewPane(Widget):
         return scroller.scroll_offset.y + y
 
     def on_click(self, event: Click) -> None:
-        """Double-click copies file:line to clipboard."""
+        """Click focuses the pane; double-click copies file:line to clipboard."""
+        if not self.has_focus:
+            self.focus()
         if event.chain < 2 or not self.current_path:
             return
         # y is relative to the preview-scroll widget

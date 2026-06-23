@@ -14,6 +14,8 @@ _DIFF_MODE_NAMES = {m.value: m for m in DiffMode}
 
 _OVERVIEW_STYLES = ("line", "quadrant", "sextant", "braille", "off")
 
+_LOGO_MODES = ("auto", "kitty", "sextant", "unicode", "text")
+
 
 class Preferences:
     """User preferences with defaults."""
@@ -21,6 +23,9 @@ class Preferences:
     def __init__(self) -> None:
         self.diff_modes: list[DiffMode] = list(DiffMode)
         self.overview_styles: list[str] = list(_OVERVIEW_STYLES)
+        self.logo_mode: str = "auto"
+        self.logo_text: str | None = None
+        self.focus_color: str = "#6b21a8"
 
     @classmethod
     def load(cls) -> Preferences:
@@ -43,6 +48,16 @@ class Preferences:
                 styles = [s for s in raw if s in _OVERVIEW_STYLES]
                 if styles:
                     prefs.overview_styles = styles
+        if "logo" in data:
+            logo = data["logo"]
+            if "mode" in logo and logo["mode"] in _LOGO_MODES:
+                prefs.logo_mode = logo["mode"]
+            if "text" in logo and isinstance(logo["text"], str):
+                prefs.logo_text = logo["text"]
+        if "ui" in data:
+            ui = data["ui"]
+            if "focus_color" in ui and isinstance(ui["focus_color"], str):
+                prefs.focus_color = ui["focus_color"]
         return prefs
 
 

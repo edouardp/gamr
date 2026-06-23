@@ -44,7 +44,7 @@ from gamr.widgets.help import HelpScreen
 from gamr.widgets.preview_pane import DiffOverview, PreviewPane
 from gamr.widgets.side_by_side import SideBySideDiffScreen
 from gamr.widgets.split import HorizontalSplit, SplitHandle
-from gamr.widgets.toolbar import Toolbar
+from gamr.widgets.toolbar import Toolbar, _logo
 
 
 class GamrApp(App):
@@ -53,6 +53,12 @@ class GamrApp(App):
     COMMANDS = App.COMMANDS | {GamrCommands}
     CSS_PATH = "gamr.tcss"
     TITLE = "Gamr"
+
+    def get_css_variables(self) -> dict[str, str]:
+        variables = super().get_css_variables()
+        prefs = getattr(self, "_prefs", None)
+        variables["pane-focus-color"] = prefs.focus_color if prefs else "#6b21a8"
+        return variables
 
     # All bindings use priority=True so they work regardless of which widget has focus.
     # See docs/UI_DESIGN.md for the full interaction specification.
@@ -159,6 +165,8 @@ class GamrApp(App):
         # Swap loading indicator for the main content
         self.query_one("#startup-loading", LoadingIndicator).remove()
         self.query_one(HorizontalSplit).display = True
+        # Sync preview pane diff mode with saved state
+        self.query_one(PreviewPane).show_diff = self._diff_mode
 
         self._all_entries = entries
         tree = self.query_one(FileTreeTable)
@@ -625,6 +633,23 @@ class GamrApp(App):
         preview = self.query_one(PreviewPane)
         (preview if tree.has_focus else tree).focus()
 
+    def on_descendant_focus(self, event) -> None:
+        """Update pane header highlights when focus moves."""
+        left = self.query_one("#left-pane")
+        right = self.query_one("#right-pane")
+        # Check if focus is within the left or right pane
+        focused = self.focused
+        if focused is None:
+            left.remove_class("pane-focused")
+            right.remove_class("pane-focused")
+            return
+        if left in focused.ancestors_with_self:
+            left.add_class("pane-focused")
+            right.remove_class("pane-focused")
+        elif right in focused.ancestors_with_self:
+            right.add_class("pane-focused")
+            left.remove_class("pane-focused")
+
     def action_cycle_view(self) -> None:
         self.query_one(FileTreeTable).action_cycle_view()
         self._update_status_bar()
@@ -656,12 +681,14 @@ class GamrApp(App):
             screen.dismiss(screen._get_current_source_line())
         else:
             screen.dismiss()
+        self.query_one(Toolbar).show_logo()
 
     def action_show_help(self) -> None:
         """Show keyboard shortcuts popup."""
         if self._has_modal():
             self._dismiss_modal()
             return
+        self.query_one(Toolbar).hide_logo()
         self.push_screen(HelpScreen())
 
     def action_side_by_side(self) -> None:
@@ -669,6 +696,7 @@ class GamrApp(App):
         if self._has_modal():
             self._dismiss_modal()
             return
+        self.query_one(Toolbar).hide_logo()
         tree = self.query_one(FileTreeTable)
         entry = tree.get_current_entry()
         if not entry or not entry.git_status or not self._git.is_git_repo():
@@ -718,6 +746,15 @@ class GamrApp(App):
 
         with self.suspend():
             subprocess.run(cmd)  # nosec B603
+            # Restore terminal title (vim sets it to "Thanks for flying Vim")
+            import sys
+
+            sys.stdout.write("\033]0;gamr\007")
+            sys.stdout.flush()
+        # Re-transmit logo image (terminal clears image data on screen switch)
+        if _logo.available:
+            _logo.transmit()
+            self.query_one(Toolbar)._place_logo_image()
 
     def action_open_macos(self) -> None:
         """Open the selected file with the system default application."""
@@ -818,6 +855,12 @@ class GamrApp(App):
         self._state.use_sextant = overview.use_sextant
         self._state.save()
 
+    def action_open_link(self, url: str) -> None:
+        """Open a URL in the default browser."""
+        import webbrowser
+
+        webbrowser.open(url)
+
     def action_quit(self) -> None:
         """Save state and exit."""
         if self._has_modal():
@@ -837,7 +880,9 @@ def main() -> None:
     sys.stdout.flush()
     GamrApp(path=path).run()
     # Restore previous title after Textual exits
-    sys.stdout.write("\033[23;0t")  # pop title from stack
+    # Push/pop stack isn't universally supported; also set empty title as fallback
+    sys.stdout.write("\033[23;0t")  # pop title from stack (xterm/kitty)
+    sys.stdout.write("\033]0;\007")  # reset to empty (triggers shell to reclaim)
     sys.stdout.flush()
 
 
