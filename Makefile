@@ -55,6 +55,16 @@ format: ## Auto-fix formatting and linting issues
 	uv run ruff format src/ tests/
 
 # ============================================================================
+# Release
+# ============================================================================
+
+.PHONY: release
+release: ## Create a release (interactive version bump selector)
+	@BUMP=$$(uv run scripts/chooser.py --title "Release type:" '{"patch": "Bug fixes, minor changes", "minor": "New features, backwards compatible", "major": "Breaking changes"}' 3>&1 1>&2) || exit 1; \
+	echo "Creating $$BUMP release..."; \
+	./scripts/release.sh $$BUMP
+
+# ============================================================================
 # Website Deployment
 # ============================================================================
 
