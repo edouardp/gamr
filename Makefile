@@ -59,10 +59,21 @@ format: ## Auto-fix formatting and linting issues
 # ============================================================================
 
 .PHONY: release
-release: ## Create a release (interactive version bump selector)
-	@BUMP=$$(uv run scripts/chooser.py --title "Release type:" '{"patch": "Bug fixes, minor changes", "minor": "New features, backwards compatible", "major": "Breaking changes"}' 3>&1 1>&2) || exit 1; \
-	echo "Creating $$BUMP release..."; \
-	./scripts/release.sh $$BUMP
+release: ## Release (interactive — asks for bump type)
+	@CHOICE=$$(uv run scripts/chooser.py --title "Release type?" patch minor major 3>&1 1>&2) || exit 1; \
+	./scripts/release.sh $$CHOICE
+
+.PHONY: release-patch
+release-patch: ## Release a patch version (bug fixes)
+	./scripts/release.sh patch
+
+.PHONY: release-minor
+release-minor: ## Release a minor version (new features)
+	./scripts/release.sh minor
+
+.PHONY: release-major
+release-major: ## Release a major version (breaking changes)
+	./scripts/release.sh major
 
 # ============================================================================
 # Website Deployment
