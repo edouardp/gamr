@@ -24,7 +24,6 @@
   - Makefile with deploy-infra, deploy-website, release, test targets
   - Interactive release chooser via TUI
 
-
 ## 0.3.0 (2026-06-20)
 
   - Git worktree support: correct working tree root detection for linked worktrees and bare-repo layouts
