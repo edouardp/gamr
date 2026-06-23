@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.4.0 (2026-06-23)
+
+  - Kitty graphics protocol logo on supported terminals (Ghostty, Kitty, WezTerm)
+  - Logo hidden during search, modals, and restored after editor exit
+  - Logo preferences in `~/.config/gamr/preferences.toml` (`[logo]` section)
+  - Set terminal title to "gamr" on launch, restore on exit
+  - Restore terminal title after returning from $EDITOR
+  - Focused pane header highlighted in purple (configurable via `[ui] focus_color`)
+  - Preview pane header shows file icon and relative path
+  - Preview pane focuses on click anywhere in the pane
+  - Remove diff mode from preview pane header (shown in toolbar only)
+  - Fix: initial diff mode now respects saved state on startup
+  - Fix: status bar items auto-width to prevent text wrapping
+  - Progressive async startup with native LoadingIndicator
+  - Extract PreviewController from app.py
+  - Follow mode: track known hunks, scroll to last hunk, skip if visible
+  - Don't follow to new files when side-by-side is open; live-update modal
+  - Static marketing website at gamr.edouard.nz
+  - Website: mp4 demo videos for all features, interactive feature explorer
+  - Website: docs page rewritten as user guide with keycap styling
+  - CloudFormation infrastructure for S3/CloudFront/Route53 deployment
+  - Makefile with deploy-infra, deploy-website, release, test targets
+  - Interactive release chooser via TUI
+
+
 ## 0.3.0 (2026-06-20)
 
   - Git worktree support: correct working tree root detection for linked worktrees and bare-repo layouts
